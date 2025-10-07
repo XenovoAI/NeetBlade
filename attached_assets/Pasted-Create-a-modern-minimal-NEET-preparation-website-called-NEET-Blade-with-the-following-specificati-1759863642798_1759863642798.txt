@@ -1,0 +1,137 @@
+Create a modern, minimal NEET preparation website called "NEET Blade" with the following specifications:
+
+PROJECT OVERVIEW:
+- Website Name: NEET Blade
+- Purpose: NEET study materials and live test series platform
+- Design: Clean, minimal interface similar to the provided screenshot
+- Database: Supabase integration
+- Tech Stack: React + TypeScript + Tailwind CSS + Supabase
+
+HEADER/NAVBAR:
+- Logo: "NEET Blade" with orange accent (#EA580C)
+- Navigation: Home, Study Materials, Live Tests, About, Contact
+- Right side: Login/Register buttons
+- Admin Login link (separate)
+- Sticky navigation with clean white background
+
+HERO SECTION:
+- Large heading: "Ace Your NEET Exam with Expert Study Materials"
+- Subheading: "Access comprehensive NEET preparation materials and practice tests. Prepare effectively and boost your confidence for the exam."
+- Primary CTA button: "Explore Study Materials" (orange #EA580C)
+- Clean, centered layout with minimal background
+
+STUDY MATERIALS SECTION:
+- Title: "Comprehensive Study Materials"
+- Three subject cards: Physics, Chemistry, Biology
+- Each card includes:
+  - Subject icon
+  - Subject name
+  - Brief description
+  - Number of chapters/topics
+  - "Access Materials" button
+- Grid layout, responsive design
+
+LIVE TEST SERIES SECTION:
+- Title: "Live Test Series & Mock Exams"
+- Tabbed interface:
+  - Sectional Tests
+  - Full-Length Tests
+  - Previous Year Papers
+- Each test displays:
+  - Test name
+  - Duration
+  - Number of questions
+  - Difficulty level
+  - "Start Test" button
+- Real-time timer functionality
+
+FEATURES SECTION:
+- Key features grid:
+  - Comprehensive Notes
+  - Video Solutions
+  - Performance Analytics
+  - Mobile Friendly
+  - Expert Faculty
+  - 24/7 Support
+
+TRUST SECTION:
+- "Trusted by Leading Institutions" heading
+- Logo placeholders for partner institutions
+- Student success statistics
+
+FOOTER:
+- Quick links: About, Privacy Policy, Terms of Service
+- Contact information
+- Social media icons: Telegram, YouTube, Instagram
+- Newsletter signup
+- Copyright notice
+
+ADMIN PANEL FEATURES:
+- Dashboard with analytics overview
+- User management (view, edit, delete users)
+- Content management:
+  - Upload/manage study materials (PDFs, videos)
+  - Create/edit test series
+  - Add/remove questions
+  - Manage subject categories
+- Test analytics and results
+- System settings
+
+SUPABASE INTEGRATION:
+- Authentication: User registration, login, password reset
+- Database tables:
+  - users (profiles, roles, subscription status)
+  - subjects (physics, chemistry, biology)
+  - study_materials (PDFs, videos, notes)
+  - tests (test metadata, questions, answers)
+  - test_attempts (user results, scores, timestamps)
+  - admin_users (admin roles and permissions)
+
+- Real-time subscriptions for live tests
+- File storage for study materials and media
+- Row Level Security (RLS) policies
+
+FUNCTIONALITY REQUIREMENTS:
+- User authentication with email verification
+- Role-based access (student, admin, super-admin)
+- File upload/download for study materials
+- Timer-based test interface
+- Automatic test submission
+- Score calculation and result display
+- Progress tracking
+- Mobile-responsive design
+- Search functionality for materials
+- Bookmark/favorite materials
+- Download offline content
+
+DESIGN SPECIFICATIONS:
+- Color palette: White background, dark gray text (#1F2937), orange accents (#EA580C)
+- Typography: Inter font family
+- Spacing: Clean, generous whitespace
+- Components: Modern card-based layout
+- Buttons: Rounded corners, hover effects
+- Forms: Clean input fields with validation
+
+PAGES TO CREATE:
+1. Homepage (as described above)
+2. Study Materials page (filterable by subject)
+3. Live Tests page (with test interface)
+4. Test Results page
+5. User Dashboard/Profile
+6. Admin Dashboard
+7. Login/Register pages
+8. About Us page
+9. Contact page
+10. Privacy Policy & Terms
+
+TECHNICAL REQUIREMENTS:
+- Responsive design (mobile-first)
+- SEO optimized
+- Fast loading times
+- Secure authentication
+- Data validation
+- Error handling
+- Loading states
+- Toast notifications
+
+Please create a fully functional website with working authentication, database integration, file uploads, and a complete admin panel using Supabase as the backend.
