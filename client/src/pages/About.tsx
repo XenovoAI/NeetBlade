@@ -1,7 +1,9 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
-import { Target, Users, Award, BookOpen } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Target, Users, Award, BookOpen, Mail } from "lucide-react";
 
 export default function About() {
   return (
@@ -25,6 +27,28 @@ export default function About() {
             Our platform combines expert-curated content, innovative learning tools, and performance analytics to help students achieve their dreams of becoming medical professionals.
           </p>
         </Card>
+
+        <div className="mb-12">
+          <h2 className="text-3xl font-bold text-foreground text-center mb-8">Meet Our Team</h2>
+          <Card className="p-8 max-w-2xl mx-auto">
+            <div className="flex flex-col items-center text-center">
+              <Avatar className="h-24 w-24 mb-4">
+                <AvatarFallback className="text-2xl bg-primary text-primary-foreground">AD</AvatarFallback>
+              </Avatar>
+              <h3 className="text-2xl font-bold text-foreground mb-1">Arjun Dwivedi</h3>
+              <p className="text-primary font-medium mb-4">Founder & CEO</p>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                Leading the mission to democratize NEET preparation and make quality education accessible to every aspiring medical student across India.
+              </p>
+              <Button variant="outline" asChild data-testid="button-founder-email">
+                <a href="mailto:teamneetblade@gmail.com" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  teamneetblade@gmail.com
+                </a>
+              </Button>
+            </div>
+          </Card>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           <Card className="p-6">
