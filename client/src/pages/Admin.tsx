@@ -8,22 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit } from "lucide-react";
 
-const users = [
-  { id: 1, name: "John Doe", email: "john@example.com", role: "Student", status: "Active" },
-  { id: 2, name: "Jane Smith", email: "jane@example.com", role: "Student", status: "Active" },
-  { id: 3, name: "Mike Johnson", email: "mike@example.com", role: "Student", status: "Inactive" },
-];
-
-const materials = [
-  { id: 1, title: "Physics - Mechanics", subject: "Physics", type: "PDF", uploaded: "2024-01-15" },
-  { id: 2, title: "Chemistry - Organic", subject: "Chemistry", type: "Video", uploaded: "2024-01-10" },
-];
-
-const tests = [
-  { id: 1, name: "NEET Mock Test 1", questions: 180, duration: 180, attempts: 245 },
-  { id: 2, name: "Physics Sectional", questions: 30, duration: 60, attempts: 156 },
-];
-
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
 
@@ -43,8 +27,8 @@ export default function Admin() {
               <span className="text-sm text-muted-foreground">Total Users</span>
               <Users className="h-5 w-5 text-primary" />
             </div>
-            <div className="text-3xl font-bold text-foreground" data-testid="text-total-users">1,245</div>
-            <p className="text-sm text-muted-foreground mt-1">+12% from last month</p>
+            <div className="text-3xl font-bold text-foreground" data-testid="text-total-users">0</div>
+            <p className="text-sm text-muted-foreground mt-1">No users yet</p>
           </Card>
 
           <Card className="p-6">
@@ -52,8 +36,8 @@ export default function Admin() {
               <span className="text-sm text-muted-foreground">Total Tests</span>
               <FileText className="h-5 w-5 text-primary" />
             </div>
-            <div className="text-3xl font-bold text-foreground" data-testid="text-total-tests">156</div>
-            <p className="text-sm text-muted-foreground mt-1">8 added this week</p>
+            <div className="text-3xl font-bold text-foreground" data-testid="text-total-tests">0</div>
+            <p className="text-sm text-muted-foreground mt-1">No tests created</p>
           </Card>
 
           <Card className="p-6">
@@ -61,8 +45,8 @@ export default function Admin() {
               <span className="text-sm text-muted-foreground">Study Materials</span>
               <BarChart3 className="h-5 w-5 text-primary" />
             </div>
-            <div className="text-3xl font-bold text-foreground" data-testid="text-total-materials">342</div>
-            <p className="text-sm text-muted-foreground mt-1">15 uploaded this week</p>
+            <div className="text-3xl font-bold text-foreground" data-testid="text-total-materials">0</div>
+            <p className="text-sm text-muted-foreground mt-1">No materials uploaded</p>
           </Card>
 
           <Card className="p-6">
@@ -70,8 +54,8 @@ export default function Admin() {
               <span className="text-sm text-muted-foreground">Test Attempts</span>
               <Settings className="h-5 w-5 text-primary" />
             </div>
-            <div className="text-3xl font-bold text-foreground" data-testid="text-test-attempts">5,678</div>
-            <p className="text-sm text-muted-foreground mt-1">+24% from last week</p>
+            <div className="text-3xl font-bold text-foreground" data-testid="text-test-attempts">0</div>
+            <p className="text-sm text-muted-foreground mt-1">No attempts yet</p>
           </Card>
         </div>
 
@@ -86,28 +70,8 @@ export default function Admin() {
           <TabsContent value="dashboard">
             <Card className="p-6">
               <h2 className="text-2xl font-bold text-foreground mb-4">Recent Activity</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-card rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">New user registration</p>
-                    <p className="text-sm text-muted-foreground">Sarah Williams joined 2 hours ago</p>
-                  </div>
-                  <Badge variant="outline">New</Badge>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-card rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Test completed</p>
-                    <p className="text-sm text-muted-foreground">156 students completed Mock Test 3</p>
-                  </div>
-                  <Badge variant="outline">Today</Badge>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-card rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Material uploaded</p>
-                    <p className="text-sm text-muted-foreground">Biology Chapter 12 notes added</p>
-                  </div>
-                  <Badge variant="outline">Yesterday</Badge>
-                </div>
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No recent activity to display</p>
               </div>
             </Card>
           </TabsContent>
@@ -121,44 +85,8 @@ export default function Admin() {
                   <Button data-testid="button-add-user">Add User</Button>
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Name</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Email</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Role</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Status</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id} className="border-b border-border hover-elevate" data-testid={`row-user-${user.id}`}>
-                        <td className="py-3 px-4 text-sm text-foreground">{user.name}</td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground">{user.email}</td>
-                        <td className="py-3 px-4 text-sm">
-                          <Badge variant="outline">{user.role}</Badge>
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          <Badge className={user.status === "Active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                            {user.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" data-testid={`button-edit-user-${user.id}`}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" data-testid={`button-delete-user-${user.id}`}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No users found. Add your first user to get started.</p>
               </div>
             </Card>
           </TabsContent>
@@ -172,27 +100,8 @@ export default function Admin() {
                   Upload Material
                 </Button>
               </div>
-              <div className="space-y-4">
-                {materials.map((material) => (
-                  <div key={material.id} className="flex items-center justify-between p-4 bg-card rounded-lg hover-elevate" data-testid={`card-material-${material.id}`}>
-                    <div>
-                      <h3 className="font-medium text-foreground">{material.title}</h3>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant="outline">{material.subject}</Badge>
-                        <Badge variant="outline">{material.type}</Badge>
-                        <span className="text-sm text-muted-foreground">Uploaded: {material.uploaded}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" data-testid={`button-edit-material-${material.id}`}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" data-testid={`button-delete-material-${material.id}`}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No study materials uploaded. Upload your first material to get started.</p>
               </div>
             </Card>
           </TabsContent>
@@ -203,27 +112,8 @@ export default function Admin() {
                 <h2 className="text-2xl font-bold text-foreground">Test Management</h2>
                 <Button data-testid="button-create-test">Create New Test</Button>
               </div>
-              <div className="space-y-4">
-                {tests.map((test) => (
-                  <div key={test.id} className="flex items-center justify-between p-4 bg-card rounded-lg hover-elevate" data-testid={`card-test-${test.id}`}>
-                    <div>
-                      <h3 className="font-medium text-foreground">{test.name}</h3>
-                      <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
-                        <span>{test.questions} questions</span>
-                        <span>{test.duration} min</span>
-                        <span>{test.attempts} attempts</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" data-testid={`button-edit-test-${test.id}`}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" data-testid={`button-delete-test-${test.id}`}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No tests created. Create your first test to get started.</p>
               </div>
             </Card>
           </TabsContent>
