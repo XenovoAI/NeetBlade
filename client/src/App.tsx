@@ -16,6 +16,7 @@ import Contact from "@/pages/Contact";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import Admin from "@/pages/Admin";
+import ForgotPassword from "@/pages/ForgotPassword";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,8 +35,9 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
-      <Route path="/admin" component={Admin} />
-      <Route component={NotFound} />
+  <Route path="/admin" component={Admin} />
+  <Route path="/ForgotPassword" component={ForgotPassword} />
+  <Route component={NotFound} />
     </Switch>
   );
 }

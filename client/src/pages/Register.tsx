@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +13,37 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
     if (password !== confirmPassword) {
-      alert("Passwords don't match!");
+      setError("Passwords don't match!");
       return;
     }
-    console.log("Register attempt", { name, email, password });
-    setLocation("/dashboard");
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: window.location.origin + "/login"
+      }
+    });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess("Registration successful! Please check your email to verify your account.");
+      setName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+    }
   };
 
   return (
@@ -35,6 +59,8 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+          {success && <div className="text-green-600 text-sm text-center">{success}</div>}
           <div>
             <Label htmlFor="name">Full Name</Label>
             <Input
@@ -87,8 +113,8 @@ export default function Register() {
             />
           </div>
 
-          <Button type="submit" className="w-full" size="lg" data-testid="button-register">
-            Create Account
+          <Button type="submit" className="w-full" size="lg" data-testid="button-register" disabled={loading}>
+            {loading ? "Creating..." : "Create Account"}
           </Button>
         </form>
 

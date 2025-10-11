@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +11,23 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt", { email, password });
-    setLocation("/dashboard");
+    setError(null);
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      setLocation("/dashboard");
+    }
   };
 
   return (
@@ -29,6 +43,7 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -56,13 +71,13 @@ export default function Login() {
           </div>
 
           <div className="flex items-center justify-between">
-            <Link href="/forgot-password" className="text-sm text-primary hover:underline" data-testid="link-forgot-password">
+            <Link href="/ForgotPassword" className="text-sm text-primary hover:underline" data-testid="link-forgot-password">
               Forgot password?
             </Link>
           </div>
 
-          <Button type="submit" className="w-full" size="lg" data-testid="button-login">
-            Sign In
+          <Button type="submit" className="w-full" size="lg" data-testid="button-login" disabled={loading}>
+            {loading ? "Signing In..." : "Sign In"}
           </Button>
         </form>
 
