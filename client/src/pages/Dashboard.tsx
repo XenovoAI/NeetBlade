@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [tests, setTests] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [performance, setPerformance] = useState([]);
+  const [subscription, setSubscription] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -38,6 +39,13 @@ export default function Dashboard() {
       .select("subject,percent")
       .eq("user_id", user.id)
       .then(({ data }) => setPerformance(data || []));
+    // Fetch subscription status
+    supabase
+      .from("subscriptions")
+      .select("status,plan")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => setSubscription(data));
   }, [user]);
 
   if (loading) {
@@ -65,6 +73,15 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Subscription</span>
+              <Award className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-3xl font-bold text-foreground" data-testid="text-subscription-status">
+              {subscription ? `${subscription.status} (${subscription.plan})` : "-"}
+            </div>
+          </Card>
           <Card className="p-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">Tests Taken</span>

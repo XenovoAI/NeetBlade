@@ -2,9 +2,19 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useAuthUser } from "@/hooks/useAuthUser";
+import { supabase } from "@/lib/supabaseClient";
+import { useLocation } from "wouter";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const user = useAuthUser();
+  const [, setLocation] = useLocation();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setLocation("/");
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-background border-b border-border">
@@ -38,19 +48,37 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" size="default" data-testid="button-login">
-                Login
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="default" size="default" data-testid="button-register">
-                Register
-              </Button>
-            </Link>
-            <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors ml-2" data-testid="link-admin">
-              Admin
-            </Link>
+            {user ? (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="default" size="default" data-testid="button-dashboard">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="default" data-testid="button-logout" onClick={handleLogout}>
+                  Logout
+                </Button>
+                <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors ml-2" data-testid="link-admin">
+                  Admin
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="default" data-testid="button-login">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button variant="default" size="default" data-testid="button-register">
+                    Register
+                  </Button>
+                </Link>
+                <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors ml-2" data-testid="link-admin">
+                  Admin
+                </Link>
+              </>
+            )}
           </div>
 
           <button
@@ -80,19 +108,37 @@ export default function Navbar() {
               Contact
             </Link>
             <div className="pt-4 space-y-2">
-              <Link href="/login" className="block">
-                <Button variant="ghost" size="default" className="w-full" data-testid="mobile-button-login">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/register" className="block">
-                <Button variant="default" size="default" className="w-full" data-testid="mobile-button-register">
-                  Register
-                </Button>
-              </Link>
-              <Link href="/admin" className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors pt-2" data-testid="mobile-link-admin">
-                Admin Login
-              </Link>
+              {user ? (
+                <>
+                  <Link href="/dashboard" className="block">
+                    <Button variant="default" size="default" className="w-full" data-testid="mobile-button-dashboard">
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="default" className="w-full" data-testid="mobile-button-logout" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                  <Link href="/admin" className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors pt-2" data-testid="mobile-link-admin">
+                    Admin
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="block">
+                    <Button variant="ghost" size="default" className="w-full" data-testid="mobile-button-login">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register" className="block">
+                    <Button variant="default" size="default" className="w-full" data-testid="mobile-button-register">
+                      Register
+                    </Button>
+                  </Link>
+                  <Link href="/admin" className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors pt-2" data-testid="mobile-link-admin">
+                    Admin
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
