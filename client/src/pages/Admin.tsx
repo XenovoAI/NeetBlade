@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 type User = {
   id: string;
@@ -15,10 +16,39 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit, Loader2 } from "lucide-react";
+import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit, Loader2, ShieldAlert } from "lucide-react";
 import AdminMaterialUploadModal from "./AdminMaterialUploadModal";
 
 export default function Admin() {
+  const { isAdmin, isLoading, user } = useAdminAuth();
+  
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-lg text-muted-foreground">Verifying admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not admin, show unauthorized message (shouldn't reach here due to redirect)
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 max-w-md text-center">
+          <ShieldAlert className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">
+            You don't have permission to access the admin panel.
+          </p>
+          <Button onClick={() => window.location.href = "/"}>Go to Home</Button>
+        </Card>
+      </div>
+    );
+  }
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userCount, setUserCount] = useState(0);
   const [testCount, setTestCount] = useState(0);
