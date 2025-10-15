@@ -199,9 +199,20 @@ export default function Admin() {
                 </Button>
               </div>
               <AdminMaterialUploadModal open={uploadOpen} onOpenChange={setUploadOpen} onUploaded={refreshMaterials} />
-              {materials.length === 0 ? (
+              
+              {loadingMaterials ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">No study materials uploaded. Upload your first material to get started.</p>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                  <p className="text-muted-foreground">Loading materials...</p>
+                </div>
+              ) : materials.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">No study materials uploaded yet.</p>
+                  <Button onClick={() => setUploadOpen(true)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Your First Material
+                  </Button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -209,26 +220,59 @@ export default function Admin() {
                     <thead>
                       <tr className="border-b">
                         <th className="px-4 py-2 text-left">Title</th>
-                        <th className="px-4 py-2 text-left">Description</th>
-                        <th className="px-4 py-2 text-left">File</th>
+                        <th className="px-4 py-2 text-left">Subject</th>
+                        <th className="px-4 py-2 text-left">Size</th>
                         <th className="px-4 py-2 text-left">Uploaded</th>
                         <th className="px-4 py-2 text-left">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {materials.map(material => (
-                        <tr key={material.id} className="border-b">
-                          <td className="px-4 py-2">{material.title}</td>
-                          <td className="px-4 py-2">{material.description}</td>
-                          <td className="px-4 py-2">
-                            <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
+                        <tr key={material.id} className="border-b hover:bg-muted/50">
+                          <td className="px-4 py-3">
+                            <div>
+                              <div className="font-medium">{material.title}</div>
+                              {material.description && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {material.description.length > 60 
+                                    ? material.description.substring(0, 60) + '...' 
+                                    : material.description}
+                                </div>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-4 py-2">{material.created_at?.slice(0, 10)}</td>
-                          <td className="px-4 py-2 flex gap-2">
-                            <Button size="sm" variant="destructive" onClick={async () => {
-                              await supabase.from("materials").delete().eq("id", material.id);
-                              refreshMaterials();
-                            }}><Trash2 className="h-4 w-4" /></Button>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className="capitalize">
+                              {material.subject || 'N/A'}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            {formatFileSize(material.file_size)}
+                          </td>
+                          <td className="px-4 py-3">{material.created_at?.slice(0, 10)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => window.open(material.url, '_blank')}
+                                title="View"
+                              >
+                                View
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                onClick={() => handleDeleteMaterial(material.id)}
+                                disabled={deletingId === material.id}
+                              >
+                                {deletingId === material.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
