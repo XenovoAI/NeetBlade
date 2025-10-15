@@ -28,6 +28,8 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch counts
@@ -38,11 +40,43 @@ export default function Admin() {
     // Fetch users
     supabase.from("users").select("id, email, username, created_at").then(({ data }) => setUsers(data || []));
     // Fetch materials
-    supabase.from("materials").select("id, title, description, url, created_at").then(({ data }) => setMaterials(data || []));
+    refreshMaterials();
   }, []);
 
-  const refreshMaterials = () => {
-    supabase.from("materials").select("id, title, description, url, created_at").then(({ data }) => setMaterials(data || []));
+  const refreshMaterials = async () => {
+    setLoadingMaterials(true);
+    const { data, error } = await supabase
+      .from("materials")
+      .select("*")
+      .order("created_at", { ascending: false });
+    
+    if (!error && data) {
+      setMaterials(data);
+      setMaterialCount(data.length);
+    }
+    setLoadingMaterials(false);
+  };
+
+  const handleDeleteMaterial = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this material?")) return;
+    
+    setDeletingId(id);
+    const { error } = await supabase.from("materials").delete().eq("id", id);
+    
+    if (!error) {
+      await refreshMaterials();
+    } else {
+      alert("Failed to delete material: " + error.message);
+    }
+    setDeletingId(null);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return 'N/A';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
