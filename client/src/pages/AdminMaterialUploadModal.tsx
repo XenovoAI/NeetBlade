@@ -1,71 +1,259 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabaseClient";
+import { Loader2, Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function AdminMaterialUploadModal({ open, onOpenChange, onUploaded }: { open: boolean, onOpenChange: (v: boolean) => void, onUploaded: () => void }) {
+export default function AdminMaterialUploadModal({ 
+  open, 
+  onOpenChange, 
+  onUploaded 
+}: { 
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onUploaded: () => void;
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [subject, setSubject] = useState("physics");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(false);
+
+    if (!title.trim()) {
+      setError("Please enter a title.");
+      return;
+    }
+
     if (!file) {
-      setError("Please select a file.");
+      setError("Please select a file to upload.");
       return;
     }
+
+    // Validate file size (max 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      setError("File size exceeds 50MB limit.");
+      return;
+    }
+
     setLoading(true);
-    const { data: storageData, error: storageError } = await supabase.storage.from("materials").upload(`public/${Date.now()}_${file.name}`, file);
-    if (storageError) {
-      setError(storageError.message);
-      setLoading(false);
-      return;
-    }
-    const url = storageData?.path ? supabase.storage.from("materials").getPublicUrl(storageData.path).data.publicUrl : "";
-    const { error: dbError } = await supabase.from("materials").insert({ title, description, url });
-    setLoading(false);
-    if (dbError) {
-      setError(dbError.message);
-    } else {
+
+    try {
+      // Upload file to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from("materials")
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (storageError) {
+        console.error("Storage error:", storageError);
+        throw new Error(`Upload failed: ${storageError.message}`);
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("materials")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Insert material record into database
+      const { error: dbError } = await supabase
+        .from("materials")
+        .insert({
+          title: title.trim(),
+          description: description.trim() || null,
+          url: publicUrl,
+          subject: subject,
+          file_name: file.name,
+          file_size: file.size,
+          file_type: file.type || 'application/octet-stream',
+          created_at: new Date().toISOString()
+        });
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        // Try to delete the uploaded file if database insert fails
+        await supabase.storage.from("materials").remove([filePath]);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      // Success!
+      setSuccess(true);
       setTitle("");
       setDescription("");
+      setSubject("physics");
       setFile(null);
+      
+      // Reset file input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+
+      // Call callback to refresh materials list
       onUploaded();
-      onOpenChange(false);
+
+      // Close modal after a short delay
+      setTimeout(() => {
+        onOpenChange(false);
+        setSuccess(false);
+      }, 1500);
+
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setError(err.message || "An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    setFile(selectedFile);
+    setError(null);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>Upload Study Material</DialogHeader>
-        <form onSubmit={handleUpload} className="space-y-4">
-          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-          <Input
-            type="text"
-            placeholder="Title"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            required
-          />
-          <Input
-            type="text"
-            placeholder="Description"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-          />
-          <Input
-            type="file"
-            onChange={e => setFile(e.target.files?.[0] || null)}
-            required
-          />
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Uploading..." : "Upload"}
-          </Button>
+      <DialogContent className="sm:max-w-[500px]" data-testid="dialog-upload-material">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            Upload Study Material
+          </DialogTitle>
+          <DialogDescription>
+            Upload PDFs, videos, or other study materials for students.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleUpload} className="space-y-4 mt-4">
+          {error && (
+            <Alert variant="destructive" data-testid="alert-error">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {success && (
+            <Alert className="bg-green-50 text-green-900 border-green-200" data-testid="alert-success">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>Material uploaded successfully!</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="title">Title *</Label>
+            <Input
+              id="title"
+              type="text"
+              placeholder="e.g., Mechanics - Laws of Motion"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              required
+              disabled={loading}
+              data-testid="input-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject *</Label>
+            <select
+              id="subject"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              required
+              disabled={loading}
+              data-testid="select-subject"
+            >
+              <option value="physics">Physics</option>
+              <option value="chemistry">Chemistry</option>
+              <option value="biology">Biology</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Brief description of the material (optional)"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              disabled={loading}
+              rows={3}
+              data-testid="textarea-description"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="file-upload">File *</Label>
+            <Input
+              id="file-upload"
+              type="file"
+              onChange={handleFileChange}
+              required
+              disabled={loading}
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi,.mov,.mkv"
+              data-testid="input-file"
+            />
+            {file && (
+              <p className="text-sm text-muted-foreground" data-testid="text-file-info">
+                Selected: {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+              className="flex-1"
+              data-testid="button-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading || success}
+              className="flex-1"
+              data-testid="button-submit"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : success ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Uploaded!
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
