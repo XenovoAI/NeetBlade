@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit, Loader2 } from "lucide-react";
 import AdminMaterialUploadModal from "./AdminMaterialUploadModal";
 
 export default function Admin() {
