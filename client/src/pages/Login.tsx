@@ -10,23 +10,34 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check for redirect parameter in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectTo = urlParams.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
     setLoading(false);
+    
     if (error) {
       setError(error.message);
     } else {
-      setLocation("/dashboard");
+      // Check if user is admin
+      if (email === "teamneetblade@gmail.com") {
+        setLocation("/admin");
+      } else {
+        setLocation(redirectTo);
+      }
     }
   };
 
