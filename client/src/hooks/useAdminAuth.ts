@@ -73,10 +73,10 @@ export function useAdminAuth() {
           setLocation("/admin/login?error=unauthorized");
         }
       } catch (error) {
-        console.error("💥 Admin auth check error:", error);
+        console.error("💥 Auth error:", error);
         if (mounted) {
           setIsLoading(false);
-          setLocation("/login?redirect=/admin");
+          setLocation("/admin/login");
         }
       } finally {
         authCheckCompleted.current = true;
