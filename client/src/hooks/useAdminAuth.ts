@@ -38,14 +38,12 @@ export function useAdminAuth() {
         const currentUser = session.user;
         setUser(currentUser);
 
-        // Check both email AND database is_admin field
-        console.log("🔍 Checking admin status for:", currentUser.email);
+        console.log("🔍 Verifying admin privileges for:", currentUser.email);
         
-        // First check email
+        // Check both email AND database is_admin field
         const isAdminEmail = currentUser.email === ADMIN_EMAIL;
-        console.log("📧 Email check:", { currentEmail: currentUser.email, isMatch: isAdminEmail });
 
-        // Also check database for is_admin flag
+        // Check database for is_admin flag
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('is_admin, email')
