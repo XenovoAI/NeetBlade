@@ -85,8 +85,8 @@ export function useAdminAuth() {
 
     checkAdminAuth();
 
-    // Listen for auth state changes (signout only)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (!mounted) return;
       
       console.log("🔄 Auth state changed:", event);
