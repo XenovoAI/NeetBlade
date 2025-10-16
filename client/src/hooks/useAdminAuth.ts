@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLocation } from "wouter";
 
@@ -9,28 +9,9 @@ export function useAdminAuth() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const hasCheckedAuth = useRef(false);
 
-  useEffect(() => {
-    checkAdminAuth();
-    
-    // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email);
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        checkAdminAuth();
-      } else if (event === 'SIGNED_OUT') {
-        setIsAdmin(false);
-        setUser(null);
-        setLocation("/login?redirect=/admin");
-      }
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
-
-  const checkAdminAuth = async () => {
+  const checkAdminAuth = useCallback(async () => {
     try {
       console.log("Starting admin authentication check...");
       
@@ -98,7 +79,29 @@ export function useAdminAuth() {
       setIsLoading(false);
       setLocation("/login?redirect=/admin");
     }
-  };
+  }, [setLocation]);
+
+  useEffect(() => {
+    // Only check auth once on mount
+    if (!hasCheckedAuth.current) {
+      hasCheckedAuth.current = true;
+      checkAdminAuth();
+    }
+    
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email);
+      if (event === 'SIGNED_OUT') {
+        setIsAdmin(false);
+        setUser(null);
+        setLocation("/login?redirect=/admin");
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, [checkAdminAuth, setLocation]);
 
   return { isAdmin, isLoading, user };
 }
