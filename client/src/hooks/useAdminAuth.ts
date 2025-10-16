@@ -28,23 +28,10 @@ export function useAdminAuth() {
         
         if (!mounted) return;
 
-        console.log("📋 Session check result:", { 
-          hasSession: !!session, 
-          error: sessionError?.message,
-          userEmail: session?.user?.email 
-        });
-        
-        if (sessionError) {
-          console.error("❌ Session error:", sessionError);
+        if (sessionError || !session) {
+          console.log("⚠️ No session - redirecting to admin login");
           setIsLoading(false);
-          setLocation("/login?redirect=/admin");
-          return;
-        }
-
-        if (!session) {
-          console.log("⚠️ No session found, redirecting to login");
-          setIsLoading(false);
-          setLocation("/login?redirect=/admin");
+          setLocation("/admin/login");
           return;
         }
 
