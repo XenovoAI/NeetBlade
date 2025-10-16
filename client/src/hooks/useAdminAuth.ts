@@ -66,10 +66,11 @@ export function useAdminAuth() {
           setIsAdmin(true);
           setIsLoading(false);
         } else {
-          console.log("🚫 User is not admin, redirecting to home");
+          console.log("🚫 Access denied - not an admin");
+          await supabase.auth.signOut();
           setIsAdmin(false);
           setIsLoading(false);
-          setLocation("/?error=unauthorized");
+          setLocation("/admin/login?error=unauthorized");
         }
       } catch (error) {
         console.error("💥 Admin auth check error:", error);
