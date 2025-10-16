@@ -12,6 +12,22 @@ export function useAdminAuth() {
 
   useEffect(() => {
     checkAdminAuth();
+    
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        checkAdminAuth();
+      } else if (event === 'SIGNED_OUT') {
+        setIsAdmin(false);
+        setUser(null);
+        setLocation("/login?redirect=/admin");
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   const checkAdminAuth = async () => {
@@ -44,14 +60,30 @@ export function useAdminAuth() {
       const currentUser = session.user;
       setUser(currentUser);
 
-      console.log("Checking admin status:", {
-        currentEmail: currentUser.email,
-        adminEmail: ADMIN_EMAIL,
-        isMatch: currentUser.email === ADMIN_EMAIL
+      // Check both email AND database is_admin field
+      console.log("Checking admin status for:", currentUser.email);
+      
+      // First check email
+      const isAdminEmail = currentUser.email === ADMIN_EMAIL;
+      console.log("Email check:", { currentEmail: currentUser.email, isMatch: isAdminEmail });
+
+      // Also check database for is_admin flag
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('is_admin, email')
+        .eq('email', currentUser.email)
+        .single();
+
+      console.log("Database admin check:", { 
+        userData, 
+        error: userError?.message,
+        is_admin: userData?.is_admin 
       });
 
-      // Check if user email matches admin email
-      if (currentUser.email === ADMIN_EMAIL) {
+      // User is admin if either email matches OR database is_admin is true
+      const hasAdminAccess = isAdminEmail || userData?.is_admin === true;
+
+      if (hasAdminAccess) {
         console.log("✓ Admin access granted");
         setIsAdmin(true);
         setIsLoading(false);
