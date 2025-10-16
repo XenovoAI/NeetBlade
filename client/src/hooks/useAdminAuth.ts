@@ -94,7 +94,7 @@ export function useAdminAuth() {
       if (event === 'SIGNED_OUT') {
         setIsAdmin(false);
         setUser(null);
-        setLocation("/login?redirect=/admin");
+        setLocation("/admin/login");
       }
     });
 
