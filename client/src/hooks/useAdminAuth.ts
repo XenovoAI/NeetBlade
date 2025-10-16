@@ -21,7 +21,7 @@ export function useAdminAuth() {
 
     const checkAdminAuth = async () => {
       try {
-        console.log("🔐 Starting admin authentication check...");
+        console.log("🔐 Checking admin authentication...");
         
         // Get current user session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
