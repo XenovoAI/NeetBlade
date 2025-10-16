@@ -52,13 +52,6 @@ export function useAdminAuth() {
 
         if (!mounted) return;
 
-        console.log("💾 Database admin check:", { 
-          userData, 
-          error: userError?.message,
-          is_admin: userData?.is_admin 
-        });
-
-        // User is admin if either email matches OR database is_admin is true
         const hasAdminAccess = isAdminEmail || userData?.is_admin === true;
 
         if (hasAdminAccess) {
