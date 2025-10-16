@@ -32,26 +32,9 @@ export default function Login() {
     if (error) {
       setError(error.message);
     } else if (data.session) {
-      console.log("Login successful, session created:", data.session.user.email);
-      
-      // Check if user is admin by email or database flag
-      const isAdminEmail = email === "teamneetblade@gmail.com";
-      
-      // Also check database
-      const { data: userData } = await supabase
-        .from('users')
-        .select('is_admin')
-        .eq('email', email)
-        .single();
-      
-      const isAdmin = isAdminEmail || userData?.is_admin === true;
-      
-      if (isAdmin) {
-        console.log("Admin user detected, redirecting to admin panel");
-        setLocation("/admin");
-      } else {
-        setLocation(redirectTo);
-      }
+      console.log("Login successful:", data.session.user.email);
+      // Redirect to dashboard for regular users
+      setLocation(redirectTo);
     }
   };
 
