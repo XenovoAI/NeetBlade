@@ -246,6 +246,113 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="payments">
+            <Card className="p-6">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
+                  <IndianRupee className="h-6 w-6" />
+                  Razorpay Payment Management
+                </h2>
+                <p className="text-muted-foreground">Generate payment links and manage transactions</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Generate Payment Link */}
+                <Card className="p-6 border-2">
+                  <h3 className="text-lg font-semibold mb-4">Generate Payment Link</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Enter Amount (₹)</label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            placeholder="Enter amount"
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                            className="pl-10"
+                            data-testid="input-payment-amount"
+                            min="1"
+                            step="0.01"
+                          />
+                        </div>
+                        <Button 
+                          onClick={generatePaymentLink}
+                          data-testid="button-generate-link"
+                          className="whitespace-nowrap"
+                        >
+                          Generate Link
+                        </Button>
+                      </div>
+                    </div>
+
+                    {generatedPaymentLink && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium block">Generated Payment Link</label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={generatedPaymentLink}
+                            readOnly
+                            className="flex-1 bg-muted"
+                            data-testid="generated-payment-link"
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={copyPaymentLink}
+                            title="Copy Link"
+                            data-testid="button-copy-link"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={openPaymentLink}
+                            title="Open Link"
+                            data-testid="button-open-link"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Alert>
+                          <AlertDescription>
+                            Share this link with customers to receive payment of ₹{paymentAmount}
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Quick Payment Info */}
+                <Card className="p-6 border-2">
+                  <h3 className="text-lg font-semibold mb-4">Payment Information</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Razorpay Account</h4>
+                      <p className="text-sm">@teamneetblade</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Base Payment Link</h4>
+                      <p className="text-sm break-all">{razorpayBaseLink}</p>
+                    </div>
+                    <Alert>
+                      <AlertDescription className="text-sm">
+                        <strong>How it works:</strong><br/>
+                        1. Enter the payment amount<br/>
+                        2. Click "Generate Link" to create a payment link<br/>
+                        3. Share the link with your customers<br/>
+                        4. Customers will be redirected to Razorpay to complete payment
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                </Card>
+              </div>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="users">
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
