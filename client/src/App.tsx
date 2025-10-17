@@ -28,6 +28,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/shop" component={Shop} />
+      <Route path="/payment/:orderId" component={Payment} />
+      <Route path="/payment-success/:orderId" component={PaymentSuccess} />
+      <Route path="/my-purchases" component={MyPurchases} />
       <Route path="/materials" component={StudyMaterialsPage} />
       <Route path="/materials/:subject" component={StudyMaterialsPage} />
       <Route path="/tests" component={LiveTestsPage} />
