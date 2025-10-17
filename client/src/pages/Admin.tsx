@@ -92,6 +92,43 @@ export default function Admin() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
+  const generatePaymentLink = () => {
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Generate payment link with amount
+    const amount = parseFloat(paymentAmount);
+    const linkWithAmount = `${razorpayBaseLink}/${amount}`;
+    setGeneratedPaymentLink(linkWithAmount);
+    
+    toast({
+      title: "Payment Link Generated",
+      description: `Payment link for ₹${amount} created successfully`,
+    });
+  };
+
+  const copyPaymentLink = () => {
+    if (generatedPaymentLink) {
+      navigator.clipboard.writeText(generatedPaymentLink);
+      toast({
+        title: "Link Copied",
+        description: "Payment link copied to clipboard",
+      });
+    }
+  };
+
+  const openPaymentLink = () => {
+    if (generatedPaymentLink) {
+      window.open(generatedPaymentLink, '_blank');
+    }
+  };
   
   // Show loading state while checking authentication
   if (isLoading) {
