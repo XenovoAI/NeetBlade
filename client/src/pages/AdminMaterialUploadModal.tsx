@@ -258,7 +258,50 @@ export default function AdminMaterialUploadModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file-upload">File *</Label>
+            <Label htmlFor="price">Price (₹) *</Label>
+            <div className="relative">
+              <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="price"
+                type="number"
+                placeholder="e.g., 299"
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                required
+                disabled={loading}
+                min="1"
+                step="0.01"
+                className="pl-10"
+                data-testid="input-price"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Payment link will be auto-generated: {price && parseFloat(price) > 0 ? `${razorpayBaseLink}/${parseFloat(price)}` : 'Enter price to preview'}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="thumbnail-upload">Thumbnail Image (Optional)</Label>
+            <Input
+              id="thumbnail-upload"
+              type="file"
+              onChange={handleThumbnailChange}
+              disabled={loading}
+              accept="image/*"
+              data-testid="input-thumbnail"
+            />
+            {thumbnail && (
+              <p className="text-sm text-muted-foreground" data-testid="text-thumbnail-info">
+                Selected: {thumbnail.name} ({(thumbnail.size / 1024).toFixed(2)} KB)
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Upload a preview image for this material (max 5MB)
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="file-upload">Study Material File *</Label>
             <Input
               id="file-upload"
               type="file"
