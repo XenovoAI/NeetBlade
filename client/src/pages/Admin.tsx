@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
   const { isAdmin, isLoading, user } = useAdminAuth();
+  const { toast } = useToast();
   
   // Declare ALL hooks at the top before any conditional returns
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -35,6 +36,11 @@ export default function Admin() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  // Payment related states
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [generatedPaymentLink, setGeneratedPaymentLink] = useState("");
+  const razorpayBaseLink = "https://razorpay.me/@teamneetblade";
 
   useEffect(() => {
     // Only fetch data if admin
