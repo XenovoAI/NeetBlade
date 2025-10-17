@@ -231,6 +231,7 @@ export default function Admin() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6" data-testid="tabs-admin">
             <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="payments" data-testid="tab-payments">Payments</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
             <TabsTrigger value="materials" data-testid="tab-materials">Materials</TabsTrigger>
             <TabsTrigger value="tests" data-testid="tab-tests">Tests</TabsTrigger>
