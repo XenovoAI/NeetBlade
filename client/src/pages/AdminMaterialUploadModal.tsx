@@ -44,6 +44,11 @@ export default function AdminMaterialUploadModal({
       return;
     }
 
+    if (!price || parseFloat(price) <= 0) {
+      setError("Please enter a valid price.");
+      return;
+    }
+
     // Validate file size (max 50MB)
     const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
@@ -51,10 +56,16 @@ export default function AdminMaterialUploadModal({
       return;
     }
 
+    // Validate thumbnail size if provided (max 5MB)
+    if (thumbnail && thumbnail.size > 5 * 1024 * 1024) {
+      setError("Thumbnail size exceeds 5MB limit.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Upload file to Supabase Storage
+      // Upload main file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -71,12 +82,37 @@ export default function AdminMaterialUploadModal({
         throw new Error(`Upload failed: ${storageError.message}`);
       }
 
-      // Get public URL
+      // Get public URL for main file
       const { data: urlData } = supabase.storage
         .from("materials")
         .getPublicUrl(filePath);
 
       const publicUrl = urlData.publicUrl;
+
+      // Upload thumbnail if provided
+      let thumbnailUrl = null;
+      if (thumbnail) {
+        const thumbExt = thumbnail.name.split('.').pop();
+        const thumbFileName = `thumb_${Date.now()}_${Math.random().toString(36).substring(7)}.${thumbExt}`;
+        const thumbPath = `thumbnails/${thumbFileName}`;
+
+        const { error: thumbError } = await supabase.storage
+          .from("materials")
+          .upload(thumbPath, thumbnail, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (!thumbError) {
+          const { data: thumbUrlData } = supabase.storage
+            .from("materials")
+            .getPublicUrl(thumbPath);
+          thumbnailUrl = thumbUrlData.publicUrl;
+        }
+      }
+
+      // Generate payment link
+      const paymentLink = `${razorpayBaseLink}/${parseFloat(price)}`;
 
       // Insert material record into database
       const { error: dbError } = await supabase
@@ -89,13 +125,19 @@ export default function AdminMaterialUploadModal({
           file_name: file.name,
           file_size: file.size,
           file_type: file.type || 'application/octet-stream',
+          price: parseFloat(price),
+          thumbnail_url: thumbnailUrl,
+          payment_link: paymentLink,
           created_at: new Date().toISOString()
         });
 
       if (dbError) {
         console.error("Database error:", dbError);
-        // Try to delete the uploaded file if database insert fails
+        // Try to delete the uploaded files if database insert fails
         await supabase.storage.from("materials").remove([filePath]);
+        if (thumbnailUrl) {
+          await supabase.storage.from("materials").remove([`thumbnails/${thumbFileName}`]);
+        }
         throw new Error(`Database error: ${dbError.message}`);
       }
 
@@ -105,10 +147,14 @@ export default function AdminMaterialUploadModal({
       setDescription("");
       setSubject("physics");
       setFile(null);
+      setThumbnail(null);
+      setPrice("");
       
-      // Reset file input
+      // Reset file inputs
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
+      const thumbInput = document.getElementById('thumbnail-upload') as HTMLInputElement;
+      if (thumbInput) thumbInput.value = '';
 
       // Call callback to refresh materials list
       onUploaded();
