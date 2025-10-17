@@ -18,6 +18,10 @@ import Terms from "@/pages/Terms";
 import Admin from "@/pages/Admin";
 import AdminLogin from "@/pages/AdminLogin";
 import ForgotPassword from "@/pages/ForgotPassword";
+import Shop from "@/pages/Shop";
+import Payment from "@/pages/Payment";
+import PaymentSuccess from "@/pages/PaymentSuccess";
+import MyPurchases from "@/pages/MyPurchases";
 import NotFound from "@/pages/not-found";
 
 function Router() {
