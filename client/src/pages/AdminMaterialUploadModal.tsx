@@ -21,9 +21,13 @@ export default function AdminMaterialUploadModal({
   const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("physics");
   const [file, setFile] = useState<File | null>(null);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  
+  const razorpayBaseLink = "https://razorpay.me/@teamneetblade";
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
