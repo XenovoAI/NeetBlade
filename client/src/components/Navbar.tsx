@@ -53,6 +53,11 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
+                <Link href="/my-purchases">
+                  <Button variant="outline" size="default" data-testid="button-my-purchases">
+                    My Purchases
+                  </Button>
+                </Link>
                 <Link href="/dashboard">
                   <Button variant="default" size="default" data-testid="button-dashboard">
                     Dashboard
