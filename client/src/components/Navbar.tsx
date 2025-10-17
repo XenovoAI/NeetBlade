@@ -32,6 +32,9 @@ export default function Navbar() {
               <Link href="/" className="text-sm font-medium text-foreground hover-elevate px-3 py-2 rounded-md transition-colors" data-testid="link-home">
                 Home
               </Link>
+              <Link href="/shop" className="text-sm font-medium text-foreground hover-elevate px-3 py-2 rounded-md transition-colors" data-testid="link-shop">
+                Shop
+              </Link>
               <Link href="/materials" className="text-sm font-medium text-foreground hover-elevate px-3 py-2 rounded-md transition-colors" data-testid="link-materials">
                 Study Materials
               </Link>
