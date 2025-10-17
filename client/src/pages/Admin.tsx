@@ -428,16 +428,32 @@ export default function Admin() {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b">
+                        <th className="px-4 py-2 text-left">Thumbnail</th>
                         <th className="px-4 py-2 text-left">Title</th>
                         <th className="px-4 py-2 text-left">Subject</th>
+                        <th className="px-4 py-2 text-left">Price</th>
                         <th className="px-4 py-2 text-left">Size</th>
                         <th className="px-4 py-2 text-left">Uploaded</th>
+                        <th className="px-4 py-2 text-left">Payment Link</th>
                         <th className="px-4 py-2 text-left">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {materials.map(material => (
                         <tr key={material.id} className="border-b hover:bg-muted/50">
+                          <td className="px-4 py-3">
+                            {material.thumbnail_url ? (
+                              <img 
+                                src={material.thumbnail_url} 
+                                alt={material.title}
+                                className="w-16 h-16 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                                <FileText className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <div>
                               <div className="font-medium">{material.title}</div>
@@ -456,9 +472,45 @@ export default function Admin() {
                             </Badge>
                           </td>
                           <td className="px-4 py-3">
+                            <div className="flex items-center gap-1 font-semibold text-green-600">
+                              <IndianRupee className="h-3 w-3" />
+                              {material.price ? material.price.toFixed(2) : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
                             {formatFileSize(material.file_size)}
                           </td>
                           <td className="px-4 py-3">{material.created_at?.slice(0, 10)}</td>
+                          <td className="px-4 py-3">
+                            {material.payment_link ? (
+                              <div className="flex gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(material.payment_link);
+                                    toast({
+                                      title: "Link Copied",
+                                      description: "Payment link copied to clipboard",
+                                    });
+                                  }}
+                                  title="Copy payment link"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => window.open(material.payment_link, '_blank')}
+                                  title="Open payment link"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">No link</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-2">
                               <Button 
