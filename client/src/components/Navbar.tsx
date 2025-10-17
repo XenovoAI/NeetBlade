@@ -103,6 +103,9 @@ export default function Navbar() {
             <Link href="/" className="block px-3 py-2 text-sm font-medium text-foreground hover-elevate rounded-md" data-testid="mobile-link-home">
               Home
             </Link>
+            <Link href="/shop" className="block px-3 py-2 text-sm font-medium text-foreground hover-elevate rounded-md" data-testid="mobile-link-shop">
+              Shop
+            </Link>
             <Link href="/materials" className="block px-3 py-2 text-sm font-medium text-foreground hover-elevate rounded-md" data-testid="mobile-link-materials">
               Study Materials
             </Link>
@@ -118,6 +121,11 @@ export default function Navbar() {
             <div className="pt-4 space-y-2">
               {user ? (
                 <>
+                  <Link href="/my-purchases" className="block">
+                    <Button variant="outline" size="default" className="w-full" data-testid="mobile-button-my-purchases">
+                      My Purchases
+                    </Button>
+                  </Link>
                   <Link href="/dashboard" className="block">
                     <Button variant="default" size="default" className="w-full" data-testid="mobile-button-dashboard">
                       Dashboard
