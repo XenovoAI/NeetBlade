@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2, Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, Upload, CheckCircle, AlertCircle, IndianRupee, Image } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AdminMaterialUploadModal({ 
