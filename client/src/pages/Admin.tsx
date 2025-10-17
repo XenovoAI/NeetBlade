@@ -16,8 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit, Loader2, ShieldAlert } from "lucide-react";
+import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit, Loader2, ShieldAlert, IndianRupee, Copy, ExternalLink } from "lucide-react";
 import AdminMaterialUploadModal from "./AdminMaterialUploadModal";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
   const { isAdmin, isLoading, user } = useAdminAuth();
