@@ -37,7 +37,7 @@ export default function LiveTestsPage() {
   const [sessions, setSessions] = useState<Map<string, TestSession>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user } = useAdminAuth();
 
   useEffect(() => {
     fetchTests();
