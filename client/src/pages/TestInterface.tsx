@@ -1,59 +1,286 @@
 import { useState, useEffect } from "react";
+import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { useLocation } from "wouter";
+import { Clock, ChevronLeft, ChevronRight, AlertCircle, Save } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { useRealtimeTest } from "@/hooks/useRealtimeTest";
 
-const questions = [
-  {
-    id: 1,
-    question: "What is the SI unit of force?",
-    options: ["Newton", "Joule", "Watt", "Pascal"],
-    correct: 0,
-  },
-  {
-    id: 2,
-    question: "Which organelle is known as the powerhouse of the cell?",
-    options: ["Nucleus", "Mitochondria", "Ribosome", "Golgi apparatus"],
-    correct: 1,
-  },
-  {
-    id: 3,
-    question: "What is the molecular formula of water?",
-    options: ["H2O", "CO2", "O2", "H2O2"],
-    correct: 0,
-  },
-];
+interface Question {
+  id: string;
+  test_id: string;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: number;
+  order_index: number;
+  points: number;
+  created_at: string;
+}
+
+interface TestAttempt {
+  id: string;
+  test_id: string;
+  user_id: string;
+  started_at: string;
+  ended_at?: string;
+  status: 'in_progress' | 'completed' | 'timed_out';
+  time_spent_seconds?: number;
+  score?: number;
+  total_points?: number;
+  created_at: string;
+}
+
+interface Test {
+  id: string;
+  title: string;
+  subject: string;
+  duration_minutes: number;
+  scheduled_start: string;
+  scheduled_end?: string;
+  status: 'draft' | 'scheduled' | 'active' | 'completed';
+}
 
 export default function TestInterface() {
-  const [, setLocation] = useLocation();
+  const { testId } = useParams<{ testId: string }>();
+  const [test, setTest] = useState<Test | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [attempt, setAttempt] = useState<TestAttempt | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [timeLeft, setTimeLeft] = useState(3600);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [timeLeft, setTimeLeft] = useState(0);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [startTime] = useState(new Date());
+
+  const { isConnected } = useRealtimeTest({
+    testId,
+    autoConnect: true
+  });
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    if (!testId) {
+      setError('Test ID is required');
+      return;
+    }
 
+    initializeTest();
+  }, [testId]);
+
+  useEffect(() => {
+    if (timeLeft <= 0 && attempt) {
+      handleTimeout();
+    }
+
+    // Show 5-minute warning
+    if (timeLeft === 300 && attempt) {
+      setShowWarningDialog(true);
+    }
+  }, [timeLeft, attempt]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (timeLeft > 0 && attempt?.status === 'in_progress') {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    }
     return () => clearInterval(timer);
-  }, []);
+  }, [timeLeft, attempt?.status]);
 
-  const handleSubmit = () => {
-    console.log("Test submitted", answers);
-    setLocation("/results");
+  const initializeTest = async () => {
+    try {
+      setLoading(true);
+      const token = await supabase.auth.getSession();
+      if (!token.data.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      // Fetch test details
+      const testResponse = await fetch(`/api/tests/${testId}`, {
+        headers: {
+          'Authorization': `Bearer ${token.data.session.access_token}`
+        }
+      });
+
+      if (!testResponse.ok) {
+        throw new Error('Failed to fetch test details');
+      }
+
+      const testData = await testResponse.json();
+      setTest(testData.data);
+
+      // Check if test is active
+      if (testData.data.status !== 'active') {
+        throw new Error(`Test is ${testData.data.status}. Cannot start test.`);
+      }
+
+      // Fetch questions
+      const questionsResponse = await fetch(`/api/tests/${testId}/questions`, {
+        headers: {
+          'Authorization': `Bearer ${token.data.session.access_token}`
+        }
+      });
+
+      if (!questionsResponse.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+
+      const questionsData = await questionsResponse.json();
+      setQuestions(questionsData.data || []);
+
+      // Start or get existing attempt
+      const attemptResponse = await fetch(`/api/tests/${testId}/start`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!attemptResponse.ok) {
+        const errorData = await attemptResponse.json();
+        throw new Error(errorData.error || 'Failed to start test');
+      }
+
+      const attemptData = await attemptResponse.json();
+      setAttempt(attemptData.data);
+
+      // Calculate time remaining
+      const endTime = new Date(testData.data.scheduled_end!);
+      const now = new Date();
+      const remainingSeconds = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000));
+      setTimeLeft(remainingSeconds);
+
+      // Fetch existing answers
+      await fetchExistingAnswers(attemptData.data.id, token.data.session.access_token);
+
+    } catch (error) {
+      console.error('Error initializing test:', error);
+      setError(error instanceof Error ? error.message : 'Failed to initialize test');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchExistingAnswers = async (attemptId: string, token: string) => {
+    try {
+      const response = await fetch(`/api/attempts/${attemptId}/answers`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const existingAnswers: Record<string, number> = {};
+        data.data?.forEach((answer: any) => {
+          if (answer.selected_option !== null) {
+            existingAnswers[answer.question_id] = answer.selected_option;
+          }
+        });
+        setAnswers(existingAnswers);
+      }
+    } catch (error) {
+      console.error('Error fetching existing answers:', error);
+    }
+  };
+
+  const saveAnswer = async (questionId: string, selectedOption: number) => {
+    if (!attempt || saving) return;
+
+    try {
+      setSaving(true);
+      const token = await supabase.auth.getSession();
+      if (!token.data.session?.access_token) return;
+
+      const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+
+      const response = await fetch(`/api/attempts/${attempt.id}/answers`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          question_id: questionId,
+          selected_option: selectedOption,
+          time_spent_seconds: timeSpent
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save answer');
+      }
+
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Error saving answer:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAnswerChange = (questionId: string, selectedOption: number) => {
+    setAnswers(prev => ({ ...prev, [questionId]: selectedOption }));
+    saveAnswer(questionId, selectedOption);
+  };
+
+  const handleTimeout = async () => {
+    if (!attempt) return;
+
+    try {
+      const token = await supabase.auth.getSession();
+      if (!token.data.session.access_token) return;
+
+      await fetch(`/api/attempts/${attempt.id}/submit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      window.location.href = `/test/${testId}/results`;
+    } catch (error) {
+      console.error('Error handling timeout:', error);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!attempt) return;
+
+    try {
+      const token = await supabase.auth.getSession();
+      if (!token.data.session.access_token) return;
+
+      const response = await fetch(`/api/attempts/${attempt.id}/submit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit test');
+      }
+
+      window.location.href = `/test/${testId}/results`;
+    } catch (error) {
+      console.error('Error submitting test:', error);
+      setError('Failed to submit test');
+    }
   };
 
   const formatTime = (seconds: number) => {
