@@ -24,7 +24,7 @@ export class TestWebSocketServer {
   private clients: Map<WebSocketClient, Set<string>> = new Map();
 
   constructor(port: number = 5050) {
-    this.wss = new WebSocket.Server({ port });
+    this.wss = new WebSocketServer({ port });
     this.initializeServer();
     this.initializeDatabaseSubscriptions();
     console.log(`WebSocket server running on port ${port}`);
