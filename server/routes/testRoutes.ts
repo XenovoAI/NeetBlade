@@ -94,7 +94,7 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
     }
 
     const token = authHeader.substring(7);
-    const { data: { user }, error } = await testService['supabase'].auth.getUser(token);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid token' });
