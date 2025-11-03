@@ -198,46 +198,89 @@ export default function LiveTestsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Live Test Series</h1>
-          <p className="text-lg text-muted-foreground">Practice with timed tests and improve your performance</p>
+          <p className="text-lg text-muted-foreground">Practice with scheduled tests and real-time monitoring</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {allTests.map((test) => (
-            <Card key={test.id} className="p-6 hover-elevate transition-all" data-testid={`card-test-${test.id}`}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">{test.name}</h3>
-                  <Badge variant="outline" className="mb-2" data-testid={`badge-subject-${test.id}`}>{test.subject}</Badge>
-                </div>
-                <Badge className={difficultyColors[test.difficulty as keyof typeof difficultyColors]} data-testid={`badge-difficulty-${test.id}`}>
-                  {test.difficulty}
-                </Badge>
-              </div>
-              
-              <div className="space-y-2 mb-6">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{test.duration} minutes</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  <span>{test.questions} questions</span>
-                </div>
-              </div>
+        {tests.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No tests available at the moment. Check back later!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tests.map((test) => {
+              const session = sessions.get(test.id);
+              return (
+                <Card key={test.id} className="p-6 hover-elevate transition-all" data-testid={`card-test-${test.id}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">{test.title}</h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" data-testid={`badge-subject-${test.id}`}>
+                          {test.subject}
+                        </Badge>
+                        <Badge className={getStatusColor(test.status)} data-testid={`badge-status-${test.id}`}>
+                          {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
+                        </Badge>
+                      </div>
+                      {test.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{test.description}</p>
+                      )}
+                    </div>
+                  </div>
 
-              <Link href={`/test/${test.id}`}>
-                <Button className="w-full" data-testid={`button-start-${test.id}`}>
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Test
-                </Button>
-              </Link>
-            </Card>
-          ))}
-        </div>
+                  <div className="space-y-2 mb-6">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>{test.duration_minutes} minutes</span>
+                    </div>
+
+                    {(test.status === 'scheduled' || test.status === 'active') && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {test.status === 'scheduled'
+                            ? `Starts in ${formatTimeRemaining(test.scheduled_start)}`
+                            : `Ends in ${formatTimeRemaining(test.scheduled_end!)}`
+                          }
+                        </span>
+                      </div>
+                    )}
+
+                    {session && (session.active_participants > 0 || session.completed_participants > 0) && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        <span>
+                          {session.active_participants} active, {session.completed_participants} completed
+                        </span>
+                      </div>
+                    )}
+
+                    {test.status === 'scheduled' && (
+                      <div className="text-sm text-blue-600 font-medium">
+                        Starts: {new Date(test.scheduled_start).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+
+                  <Link href={getActionLink(test)}>
+                    <Button
+                      className="w-full"
+                      disabled={isActionDisabled(test)}
+                      data-testid={`button-action-${test.id}`}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      {getActionText(test)}
+                    </Button>
+                  </Link>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <Footer />
