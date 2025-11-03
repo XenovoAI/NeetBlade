@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit, Loader2, ShieldAlert, IndianRupee, Copy, ExternalLink } from "lucide-react";
 import AdminMaterialUploadModal from "./AdminMaterialUploadModal";
+import AdminTestManagement from "@/components/AdminTestManagement";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
