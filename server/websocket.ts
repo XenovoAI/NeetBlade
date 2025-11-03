@@ -19,7 +19,7 @@ interface Room {
 }
 
 export class TestWebSocketServer {
-  private wss: WebSocketServer;
+  private wss: WebSocket.Server;
   private rooms: Map<string, Room> = new Map();
   private clients: Map<WebSocketClient, Set<string>> = new Map();
 
