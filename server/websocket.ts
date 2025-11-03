@@ -447,16 +447,16 @@ export class TestWebSocketServer {
 }
 
 // Export singleton instance
-let wsServer: WebSocketServer;
+let wsServer: TestWebSocketServer;
 
-export const initializeWebSocketServer = (port: number = 5050): WebSocketServer => {
+export const initializeWebSocketServer = (port: number = 5050): TestWebSocketServer => {
   if (!wsServer) {
-    wsServer = new WebSocketServer(port);
+    wsServer = new TestWebSocketServer(port);
   }
   return wsServer;
 };
 
-export const getWebSocketServer = (): WebSocketServer => {
+export const getWebSocketServer = (): TestWebSocketServer => {
   if (!wsServer) {
     throw new Error('WebSocket server not initialized');
   }
