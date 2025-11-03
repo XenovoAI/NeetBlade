@@ -10,6 +10,15 @@ const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.c
 const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Extend Express Request type to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 const createTestSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
