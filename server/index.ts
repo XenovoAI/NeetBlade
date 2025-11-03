@@ -41,13 +41,13 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Initialize WebSocket server
-  const wsPort = parseInt(process.env.WS_PORT || '5050', 10);
-  initializeWebSocketServer(wsPort);
-  log(`WebSocket server initialized on port ${wsPort}`);
+  // Initialize WebSocket server (disabled for now)
+  // const wsPort = parseInt(process.env.WS_PORT || '5050', 10);
+  // initializeWebSocketServer(wsPort);
+  // log(`WebSocket server initialized on port ${wsPort}`);
 
-  // Initialize test scheduler
-  log('Test scheduler initialized');
+  // Initialize test scheduler (disabled for now)
+  // log('Test scheduler initialized');
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
