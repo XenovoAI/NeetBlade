@@ -18,8 +18,8 @@ interface Room {
   lastActivity: Date;
 }
 
-export class WebSocketServer {
-  private wss: WebSocket.Server;
+export class TestWebSocketServer {
+  private wss: WebSocketServer;
   private rooms: Map<string, Room> = new Map();
   private clients: Map<WebSocketClient, Set<string>> = new Map();
 
