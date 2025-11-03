@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, FileText, Play, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAdminAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Test {
