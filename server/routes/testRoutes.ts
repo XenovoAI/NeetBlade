@@ -60,14 +60,14 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
     // For now, we'll assume the token contains user info
     // In production, you should verify the token with Supabase auth
 
-    const { data: { user }, error } = await testService['supabase'].auth.getUser(token);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Check if user is admin
-    const { data: userData } = await testService['supabase']
+    const { data: userData } = await supabase
       .from('users')
       .select('is_admin')
       .eq('id', user.id)
