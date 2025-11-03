@@ -1,4 +1,4 @@
-import WebSocket, { WebSocketServer } from 'ws';
+import WebSocket from 'ws';
 import { createClient } from '@supabase/supabase-js';
 import { testService } from './services/testService';
 
