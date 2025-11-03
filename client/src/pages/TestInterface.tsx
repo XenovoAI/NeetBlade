@@ -290,17 +290,80 @@ export default function TestInterface() {
     return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Initializing test...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 max-w-md w-full">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Error</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.href = '/live-tests'}>
+              Back to Tests
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!test || !attempt || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 max-w-md w-full">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Test Not Available</h2>
+            <p className="text-muted-foreground mb-4">This test is not available at the moment.</p>
+            <Button onClick={() => window.location.href = '/live-tests'}>
+              Back to Tests
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const currentQuestionData = questions[currentQuestion];
+  const answeredCount = Object.keys(answers).length;
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <div className="sticky top-0 z-50 bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-foreground">NEET Mock Test</h1>
-            <div className="flex items-center gap-2">
-              <Clock className={`h-5 w-5 ${timeLeft < 300 ? "text-destructive" : "text-muted-foreground"}`} />
-              <span className={`text-lg font-semibold ${timeLeft < 300 ? "text-destructive" : "text-foreground"}`} data-testid="text-timer">
-                {formatTime(timeLeft)}
-              </span>
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-bold text-foreground">{test.title}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                {isConnected ? 'Connected' : 'Offline'}
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {lastSaved && (
+                <div className="flex items-center gap-1 text-sm text-green-600">
+                  <Save className="h-4 w-4" />
+                  Saved {lastSaved.toLocaleTimeString()}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Clock className={`h-5 w-5 ${timeLeft < 300 ? "text-destructive animate-pulse" : "text-muted-foreground"}`} />
+                <span className={`text-lg font-semibold ${timeLeft < 300 ? "text-destructive" : "text-foreground"}`} data-testid="text-timer">
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -308,30 +371,52 @@ export default function TestInterface() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Main Question Area */}
           <div className="lg:col-span-3">
             <Card className="p-6">
               <div className="mb-6">
-                <Badge className="mb-4" data-testid="badge-question-number">Question {currentQuestion + 1} of {questions.length}</Badge>
+                <div className="flex items-center justify-between mb-4">
+                  <Badge className="mb-4" data-testid="badge-question-number">
+                    Question {currentQuestion + 1} of {questions.length}
+                  </Badge>
+                  <Badge variant="outline">
+                    {currentQuestionData.points} point{currentQuestionData.points > 1 ? 's' : ''}
+                  </Badge>
+                </div>
                 <h2 className="text-xl font-semibold text-foreground mb-6" data-testid="text-question">
-                  {questions[currentQuestion].question}
+                  {currentQuestionData.question_text}
                 </h2>
 
                 <RadioGroup
-                  value={answers[currentQuestion]?.toString()}
+                  value={answers[currentQuestionData.id]?.toString()}
                   onValueChange={(value) => {
-                    setAnswers({ ...answers, [currentQuestion]: parseInt(value) });
+                    handleAnswerChange(currentQuestionData.id, parseInt(value));
                   }}
                   data-testid="radio-options"
+                  disabled={saving}
                 >
-                  {questions[currentQuestion].options.map((option, index) => (
+                  {[
+                    { option: currentQuestionData.option_a, index: 0 },
+                    { option: currentQuestionData.option_b, index: 1 },
+                    { option: currentQuestionData.option_c, index: 2 },
+                    { option: currentQuestionData.option_d, index: 3 }
+                  ].map(({ option, index }) => (
                     <div key={index} className="flex items-center space-x-2 p-3 rounded-lg hover-elevate transition-all">
                       <RadioGroupItem value={index.toString()} id={`option-${index}`} data-testid={`radio-option-${index}`} />
                       <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                        <span className="font-medium mr-2">({String.fromCharCode(65 + index)})</span>
                         {option}
                       </Label>
                     </div>
                   ))}
                 </RadioGroup>
+
+                {saving && (
+                  <div className="mt-4 text-sm text-blue-600 flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
+                    Saving answer...
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between pt-6 border-t border-border">
@@ -344,7 +429,7 @@ export default function TestInterface() {
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   Previous
                 </Button>
-                
+
                 {currentQuestion === questions.length - 1 ? (
                   <Button onClick={() => setShowSubmitDialog(true)} data-testid="button-submit">
                     Submit Test
@@ -362,39 +447,70 @@ export default function TestInterface() {
             </Card>
           </div>
 
+          {/* Sidebar */}
           <div className="lg:col-span-1">
             <Card className="p-4 sticky top-24">
               <h3 className="font-semibold text-foreground mb-4">Question Navigation</h3>
               <div className="grid grid-cols-5 gap-2">
-                {questions.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentQuestion(index)}
-                    className={`w-10 h-10 rounded-md font-medium transition-all ${
-                      currentQuestion === index
-                        ? "bg-primary text-primary-foreground"
-                        : answers[index] !== undefined
-                        ? "bg-green-100 text-green-800"
-                        : "bg-secondary text-secondary-foreground"
-                    } hover-elevate`}
-                    data-testid={`button-question-${index + 1}`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {questions.map((question, index) => {
+                  const isAnswered = answers[question.id] !== undefined;
+                  const isCurrent = index === currentQuestion;
+
+                  return (
+                    <button
+                      key={question.id}
+                      onClick={() => setCurrentQuestion(index)}
+                      className={`w-10 h-10 rounded-md font-medium transition-all ${
+                        isCurrent
+                          ? "bg-primary text-primary-foreground ring-2 ring-primary"
+                          : isAnswered
+                          ? "bg-green-100 text-green-800 hover:bg-green-200"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      } hover-elevate`}
+                      data-testid={`button-question-${index + 1}`}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
               </div>
+
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded bg-green-100"></div>
-                  <span className="text-muted-foreground">Answered</span>
+                  <span className="text-muted-foreground">Answered ({answeredCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded bg-secondary"></div>
-                  <span className="text-muted-foreground">Not Answered</span>
+                  <span className="text-muted-foreground">Not Answered ({questions.length - answeredCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded bg-primary"></div>
                   <span className="text-muted-foreground">Current</span>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Test Progress</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <div className="flex justify-between">
+                    <span>Progress:</span>
+                    <span>{Math.round((answeredCount / questions.length) * 100)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Time Left:</span>
+                    <span className={timeLeft < 300 ? "text-red-600 font-medium" : ""}>
+                      {formatTime(timeLeft)}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <div className="w-full bg-background rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full transition-all"
+                      style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -402,17 +518,42 @@ export default function TestInterface() {
         </div>
       </div>
 
+      {/* Submit Confirmation Dialog */}
       <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Submit Test?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to submit the test? You have answered {Object.keys(answers).length} out of {questions.length} questions.
+              Are you sure you want to submit the test? You have answered {answeredCount} out of {questions.length} questions.
+              {answeredCount < questions.length && (
+                <span className="block mt-2 text-orange-600">
+                  ⚠️ You have {questions.length - answeredCount} unanswered questions.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-submit">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSubmit} data-testid="button-confirm-submit">Submit</AlertDialogAction>
+            <AlertDialogAction onClick={handleSubmit} data-testid="button-confirm-submit">
+              Submit Test
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Time Warning Dialog */}
+      <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⏰ Time Warning</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have only 5 minutes left to complete the test. Please make sure to submit your answers before time runs out.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowWarningDialog(false)}>
+              Got it!
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
