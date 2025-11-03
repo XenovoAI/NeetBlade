@@ -546,15 +546,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="tests">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground">Test Management</h2>
-                <Button data-testid="button-create-test">Create New Test</Button>
-              </div>
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No tests created. Create your first test to get started.</p>
-              </div>
-            </Card>
+            <AdminTestManagement />
           </TabsContent>
         </Tabs>
       </div>
