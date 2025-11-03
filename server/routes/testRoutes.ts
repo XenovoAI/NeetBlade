@@ -1,8 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { testService, Test, Question, TestAttempt } from '../services/testService';
+import { createClient } from '@supabase/supabase-js';
 
 // Validation schemas
 import { z } from 'zod';
+
+// Supabase client for auth
+const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const createTestSchema = z.object({
   title: z.string().min(1, 'Title is required'),
