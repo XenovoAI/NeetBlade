@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeetBlade - Real-Time Test System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .test-list {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .test-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4ade80;
+        }
+        .btn {
+            background: #4ade80;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #22c55e;
+        }
+        .countdown {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            background: #3b82f6;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 NeetBlade - Real-Time Test System</h1>
+        <p><strong>✅ Server Status:</strong> Running on Port 5001</p>
+        <p><strong>🔗 API Status:</strong> Working</p>
+        <p><strong>📊 Real-Time Tests:</strong> Available Below</p>
+
+        <div class="test-list">
+            <h2>📚 Live Test Series</h2>
+            <div id="testList">
+                <p>Loading tests...</p>
+            </div>
+        </div>
+
+        <div class="test-list">
+            <h2>👑 Admin Access</h2>
+            <a href="/admin" style="color: white;">
+                <button class="btn">Go to Admin Panel</button>
+            </a>
+            <p>Login: teamneetblade@gmail.com</p>
+        </div>
+
+        <div class="test-list">
+            <h2>📊 Test System Features</h2>
+            <ul>
+                <li>✅ Real-time test creation</li>
+                <li>✅ Scheduled test series</li>
+                <li>✅ Auto-unlock at specific times</li>
+                <li>✅ Live participant monitoring</li>
+                <li>✅ Countdown timers</li>
+                <li>✅ Waiting room functionality</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Fetch and display tests
+        async function loadTests() {
+            try {
+                const response = await fetch('/api/tests');
+                const data = await response.json();
+
+                const testList = document.getElementById('testList');
+
+                if (data.success && data.data.length > 0) {
+                    testList.innerHTML = data.data.map(test => {
+                        const startTime = new Date(test.scheduled_start);
+                        const now = new Date();
+                        const timeDiff = startTime - now;
+                        const minutes = Math.floor(timeDiff / (1000 * 60));
+
+                        let statusColor = '#3b82f6'; // blue for scheduled
+                        let statusText = test.status;
+
+                        if (timeDiff <= 0 && test.status === 'scheduled') {
+                            statusColor = '#22c55e'; // green for active
+                            statusText = 'ACTIVE NOW';
+                        }
+
+                        return `
+                            <div class="test-item">
+                                <h3>${test.title}</h3>
+                                <p><strong>Subject:</strong> ${test.subject}</p>
+                                <p><strong>Duration:</strong> ${test.duration_minutes} minutes</p>
+                                <p><strong>Status:</strong>
+                                    <span class="status" style="background: ${statusColor}">
+                                        ${statusText}
+                                    </span>
+                                </p>
+                                ${test.status === 'scheduled' ?
+                                    `<p class="countdown">Starts in ${minutes} minutes</p>` :
+                                    test.status === 'active' ?
+                                    `<p class="countdown">🚀 TEST IS LIVE NOW!</p>` :
+                                    `<p>Test completed</p>`
+                                }
+                                <button class="btn" onclick="joinTest('${test.id}')">
+                                    ${test.status === 'active' ? 'Start Test' : 'View Details'}
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    testList.innerHTML = '<p>No tests available. Admin can create tests from the admin panel.</p>';
+                }
+            } catch (error) {
+                document.getElementById('testList').innerHTML =
+                    '<p>Error loading tests. Please refresh the page.</p>';
+            }
+        }
+
+        function joinTest(testId) {
+            alert(`Test functionality would navigate to test ${testId}`);
+            window.location.href = `/test/${testId}`;
+        }
+
+        // Load tests when page loads
+        loadTests();
+
+        // Refresh tests every 30 seconds
+        setInterval(loadTests, 30000);
+    </script>
+</body>
+</html>
