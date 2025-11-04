@@ -53,7 +53,7 @@ export default function LiveTestsPage() {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch('/api/tests?status=scheduled,active,completed', {
+      const response = await fetch(`${API_BASE_URL}/api/tests?status=scheduled,active,completed`, {
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`
         }
