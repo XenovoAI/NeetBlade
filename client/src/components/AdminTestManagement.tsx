@@ -245,7 +245,7 @@ export default function AdminTestManagement() {
       const token = await supabase.auth.getSession();
       if (!token.data.session?.access_token) return;
 
-      const response = await fetch(`/api/tests/${selectedTest.id}/questions`, {
+      const response = await fetch(`${API_BASE_URL}/api/tests/${selectedTest.id}/questions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`,
