@@ -11,8 +11,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 
-  // Test system routes
-  app.use("/api/tests", testRoutes);
+  // Test system routes (using simple in-memory version for now)
+  app.use("/api/tests", simpleTestRoutes);
 
   const httpServer = createServer(app);
 
