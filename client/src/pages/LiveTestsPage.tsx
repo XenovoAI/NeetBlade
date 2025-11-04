@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Test {
   id: string;
@@ -52,7 +53,7 @@ export default function LiveTestsPage() {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch('/api/tests?status=scheduled,active,completed', {
+      const response = await fetch(`${API_BASE_URL}/api/tests?status=scheduled,active,completed`, {
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`
         }
@@ -87,7 +88,7 @@ export default function LiveTestsPage() {
       const token = await supabase.auth.getSession();
       if (!token.data.session?.access_token) return;
 
-      const response = await fetch(`/api/tests/${testId}/session`, {
+      const response = await fetch(`${API_BASE_URL}/api/tests/${testId}/session`, {
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`
         }
