@@ -88,7 +88,7 @@ export default function LiveTestsPage() {
       const token = await supabase.auth.getSession();
       if (!token.data.session?.access_token) return;
 
-      const response = await fetch(`/api/tests/${testId}/session`, {
+      const response = await fetch(`${API_BASE_URL}/api/tests/${testId}/session`, {
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`
         }
