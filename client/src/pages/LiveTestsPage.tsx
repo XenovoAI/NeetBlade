@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Test {
   id: string;
