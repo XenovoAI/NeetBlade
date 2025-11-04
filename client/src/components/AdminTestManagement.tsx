@@ -121,7 +121,7 @@ export default function AdminTestManagement() {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch('/api/tests', {
+      const response = await fetch(`${API_BASE_URL}/api/tests`, {
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`
         }
