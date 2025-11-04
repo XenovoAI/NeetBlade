@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import TestMonitoringDashboard from './TestMonitoringDashboard';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Test {
   id: string;
