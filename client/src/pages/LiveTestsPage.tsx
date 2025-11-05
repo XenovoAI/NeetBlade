@@ -59,13 +59,26 @@ export default function LiveTestsPage() {
           return;
         }
 
-        throw new Error('Failed to fetch tests');
+        // Try to get error message from response
+        let errorMessage = `Failed to fetch tests (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // If we can't parse as JSON, use the status text
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText.substring(0, 100); // Limit error message length
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
-      // Ensure response is JSON
+      // Ensure response is JSON before parsing
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        throw new TypeError('Expected JSON response for tests');
+        throw new TypeError(`Expected JSON response but got ${contentType || 'unknown content type'}`);
       }
 
       const data = await response.json();
