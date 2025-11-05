@@ -1,17 +1,8 @@
 // API Configuration
 const getApiBaseUrl = () => {
-  // Check if we're in development mode
-  if (import.meta.env.DEV) {
-    return 'http://localhost:5000';
-  }
-
-  // Check if we're accessing via localhost
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `http://${window.location.hostname}:${window.location.port || 5000}`;
-  }
-
-  // Production URL
-  return 'https://neetblade.in';
+  // In this setup, frontend and backend are served from the same server
+  // So we use the current origin for API calls
+  return window.location.origin;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
