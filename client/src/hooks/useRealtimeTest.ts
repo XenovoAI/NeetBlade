@@ -74,7 +74,10 @@ export function useRealtimeTest(options: UseRealtimeTestOptions = {}): UseRealti
     try {
       const token = await supabase.auth.getSession();
       if (!token.data.session?.access_token) {
-        throw new Error('Not authenticated');
+        // Don't throw error for unauthenticated users, just skip WebSocket connection
+        console.log('No authentication token available, skipping WebSocket connection');
+        setIsConnecting(false);
+        return;
       }
 
       const wsUrl = `${getWebSocketUrl()}?token=${token.data.session.access_token}`;
@@ -309,7 +312,7 @@ export function useSupabaseRealtime(testId?: string) {
   useEffect(() => {
     if (!testId) return;
 
-    const channels = [];
+    const channels: any[] = [];
 
     // Subscribe to test_attempts changes
     const attemptsChannel = supabase

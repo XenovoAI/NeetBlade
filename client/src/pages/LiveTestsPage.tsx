@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, FileText, Play, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { API_BASE_URL } from "@/lib/api";
 
@@ -38,7 +37,6 @@ export default function LiveTestsPage() {
   const [sessions, setSessions] = useState<Map<string, TestSession>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAdminAuth();
 
   useEffect(() => {
     fetchTests();
@@ -130,7 +128,7 @@ export default function LiveTestsPage() {
   const getActionText = (test: Test) => {
     switch (test.status) {
       case 'scheduled':
-        return 'Join Waiting Room';
+        return 'View Test';
       case 'active':
         const endTime = new Date(test.scheduled_end!);
         const now = new Date();
@@ -146,7 +144,7 @@ export default function LiveTestsPage() {
   const getActionLink = (test: Test) => {
     switch (test.status) {
       case 'scheduled':
-        return `/test/${test.id}/waiting`;
+        return `/test/${test.id}`;
       case 'active':
         return `/test/${test.id}`;
       case 'completed':

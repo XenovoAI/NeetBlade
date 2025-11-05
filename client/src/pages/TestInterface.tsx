@@ -65,7 +65,7 @@ export default function TestInterface() {
 
   const { isConnected } = useRealtimeTest({
     testId,
-    autoConnect: true
+    autoConnect: false
   });
 
   useEffect(() => {

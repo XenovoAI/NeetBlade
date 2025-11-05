@@ -36,6 +36,7 @@ function Router() {
       <Route path="/materials/:subject" component={StudyMaterialsPage} />
       <Route path="/tests" component={LiveTestsPage} />
       <Route path="/test/:id" component={TestInterface} />
+      <Route path="/test/:id/results" component={TestResults} />
       <Route path="/results" component={TestResults} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/login" component={Login} />
