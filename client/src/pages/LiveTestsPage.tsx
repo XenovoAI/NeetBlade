@@ -79,13 +79,10 @@ export default function LiveTestsPage() {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         console.warn(`Expected JSON response but got ${contentType || 'unknown content type'}`);
-        // If we get HTML on a successful response, it might be an error page
-        if (contentType && contentType.includes("text/html")) {
-          setError('Server returned an unexpected response. Please try again later.');
-          setTests([]);
-          return;
-        }
-        throw new TypeError(`Expected JSON response but got ${contentType || 'unknown content type'}`);
+        // Handle any unexpected content type gracefully (HTML, text, etc.)
+        setError('Server returned an unexpected response. Please try again later.');
+        setTests([]);
+        return;
       }
 
       const data = await response.json();
