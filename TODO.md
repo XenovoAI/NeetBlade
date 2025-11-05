@@ -1,16 +1,14 @@
-# Simplify Test System - Remove Real-Time Features
+# Fix API Route Precedence Issue
 
-## Client Side Changes
-- [x] Remove real-time session fetching and participant counts from LiveTestsPage.tsx
-- [x] Remove WebSocket connection and auto-save from TestInterface.tsx
-- [x] Remove useRealtimeTest.ts hook file entirely
-- [x] Update imports that reference removed files
+## Problem
+- Frontend receives HTML instead of JSON when fetching `/api/tests`
+- Error: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+- Vite's catch-all route overrides API routes
 
-## Server Side Changes
-- [x] Remove session-related endpoints from testRoutes.ts
-- [x] Remove session operations and real-time subscriptions from testService.ts
-- [x] Simplify attempt handling and validation
+## Solution
+- Register API routes after Vite setup to ensure they take precedence
 
-## Testing
-- [x] Test basic test creation, taking, and submission
-- [x] Verify no WebSocket connections remain
+## Tasks
+- [x] Update `server/routes.ts` to remove API route registration, only create server
+- [x] Update `server/index.ts` to import and register API routes after Vite setup
+- [ ] Test the fix by running the server and checking API responses
