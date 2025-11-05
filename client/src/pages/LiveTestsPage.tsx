@@ -48,16 +48,9 @@ export default function LiveTestsPage() {
 
   const fetchTests = async () => {
     try {
-      const token = await supabase.auth.getSession();
-      if (!token.data.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/tests?status=scheduled,active,completed`, {
-        headers: {
-          'Authorization': `Bearer ${token.data.session.access_token}`
-        }
-      });
+      // Make API call without requiring authentication
+      // Tests are public and can be viewed by anyone
+      const response = await fetch(`${API_BASE_URL}/api/tests?status=scheduled,active,completed`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch tests');
