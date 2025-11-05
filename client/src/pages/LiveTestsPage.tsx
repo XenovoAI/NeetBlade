@@ -75,17 +75,31 @@ export default function LiveTestsPage() {
         throw new Error(errorMessage);
       }
 
-      // For successful responses, ensure they're JSON before parsing
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.warn(`Expected JSON response but got ${contentType || 'unknown content type'}`);
-        // Handle any unexpected content type gracefully (HTML, text, etc.)
-        setError('Server returned an unexpected response. Please try again later.');
+      // Try to parse as JSON first, handle gracefully if it fails
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.warn('Failed to parse response as JSON:', parseError);
+        // Check if it's HTML content
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          setError('Server returned an unexpected response. Please try again later.');
+        } else {
+          setError('Server returned invalid data format. Please try again later.');
+        }
         setTests([]);
         return;
       }
 
-      const data = await response.json();
+      // Validate that we got expected data structure
+      if (!data || typeof data !== 'object') {
+        console.warn('Response data is not in expected format:', data);
+        setError('Server returned invalid data format. Please try again later.');
+        setTests([]);
+        return;
+      }
+
       setTests(data.data || []);
 
       // Fetch session data for active tests
