@@ -114,7 +114,19 @@ export default function TestInterface() {
       });
 
       if (!testResponse.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = testResponse.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          throw new Error('Authentication required. Please log in to access this test.');
+        }
+
         throw new Error('Failed to fetch test details');
+      }
+
+      // Ensure response is JSON
+      const testContentType = testResponse.headers.get("content-type");
+      if (!testContentType || !testContentType.includes("application/json")) {
+        throw new TypeError('Expected JSON response for test details');
       }
 
       const testData = await testResponse.json();
@@ -133,7 +145,19 @@ export default function TestInterface() {
       });
 
       if (!questionsResponse.ok) {
+        // Check if response is HTML (authentication redirect)
+        const questionsContentType = questionsResponse.headers.get("content-type");
+        if (questionsContentType && questionsContentType.includes("text/html")) {
+          throw new Error('Authentication required. Please log in to access test questions.');
+        }
+
         throw new Error('Failed to fetch questions');
+      }
+
+      // Ensure response is JSON
+      const questionsContentType = questionsResponse.headers.get("content-type");
+      if (!questionsContentType || !questionsContentType.includes("application/json")) {
+        throw new TypeError('Expected JSON response for questions');
       }
 
       const questionsData = await questionsResponse.json();
@@ -181,16 +205,33 @@ export default function TestInterface() {
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const existingAnswers: Record<string, number> = {};
-        data.data?.forEach((answer: any) => {
-          if (answer.selected_option !== null) {
-            existingAnswers[answer.question_id] = answer.selected_option;
-          }
-        });
-        setAnswers(existingAnswers);
+      if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.warn('Received HTML response for answers, authentication may be required');
+          return;
+        }
+
+        console.error('Failed to fetch existing answers:', response.status);
+        return;
       }
+
+      // Ensure response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error('Expected JSON response for answers');
+        return;
+      }
+
+      const data = await response.json();
+      const existingAnswers: Record<string, number> = {};
+      data.data?.forEach((answer: any) => {
+        if (answer.selected_option !== null) {
+          existingAnswers[answer.question_id] = answer.selected_option;
+        }
+      });
+      setAnswers(existingAnswers);
     } catch (error) {
       console.error('Error fetching existing answers:', error);
     }
@@ -220,6 +261,12 @@ export default function TestInterface() {
       });
 
       if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          throw new Error('Authentication required. Please log in to save answers.');
+        }
+
         throw new Error('Failed to save answer');
       }
 
@@ -241,15 +288,27 @@ export default function TestInterface() {
 
     try {
       const token = await supabase.auth.getSession();
-      if (!token.data.session.access_token) return;
+      if (!token.data.session?.access_token) return;
 
-      await fetch(`/api/attempts/${attempt.id}/submit`, {
+      const response = await fetch(`/api/attempts/${attempt.id}/submit`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`,
           'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.warn('Authentication required during timeout submission');
+          window.location.href = `/login?redirect=/test/${testId}`;
+          return;
+        }
+
+        console.error('Failed to submit test on timeout:', response.status);
+      }
 
       window.location.href = `/test/${testId}/results`;
     } catch (error) {
@@ -262,7 +321,10 @@ export default function TestInterface() {
 
     try {
       const token = await supabase.auth.getSession();
-      if (!token.data.session.access_token) return;
+      if (!token.data.session?.access_token) {
+        setError('Authentication required. Please log in to submit the test.');
+        return;
+      }
 
       const response = await fetch(`/api/attempts/${attempt.id}/submit`, {
         method: 'POST',
@@ -273,13 +335,20 @@ export default function TestInterface() {
       });
 
       if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          setError('Authentication required. Please log in to submit the test.');
+          return;
+        }
+
         throw new Error('Failed to submit test');
       }
 
       window.location.href = `/test/${testId}/results`;
     } catch (error) {
       console.error('Error submitting test:', error);
-      setError('Failed to submit test');
+      setError(error instanceof Error ? error.message : 'Failed to submit test');
     }
   };
 

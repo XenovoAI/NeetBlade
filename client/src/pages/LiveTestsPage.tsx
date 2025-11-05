@@ -51,7 +51,21 @@ export default function LiveTestsPage() {
       const response = await fetch(`${API_BASE_URL}/api/tests?status=scheduled,active,completed`);
 
       if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.warn('Received HTML response, tests may not be accessible without authentication');
+          setTests([]);
+          return;
+        }
+
         throw new Error('Failed to fetch tests');
+      }
+
+      // Ensure response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new TypeError('Expected JSON response for tests');
       }
 
       const data = await response.json();
@@ -68,7 +82,7 @@ export default function LiveTestsPage() {
 
     } catch (error) {
       console.error('Error fetching tests:', error);
-      setError('Failed to load tests');
+      setError(error instanceof Error ? error.message : 'Failed to load tests');
     } finally {
       setLoading(false);
     }
@@ -85,11 +99,28 @@ export default function LiveTestsPage() {
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data) {
-          setSessions(prev => new Map(prev.set(testId, data.data)));
+      if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.warn('Received HTML response for test session, authentication may be required');
+          return;
         }
+
+        console.error('Failed to fetch test session:', response.status);
+        return;
+      }
+
+      // Ensure response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error('Expected JSON response for test session');
+        return;
+      }
+
+      const data = await response.json();
+      if (data.data) {
+        setSessions(prev => new Map(prev.set(testId, data.data)));
       }
     } catch (error) {
       console.error('Error fetching test session:', error);
