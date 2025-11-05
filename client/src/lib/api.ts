@@ -2,7 +2,7 @@
 const getApiBaseUrl = () => {
   // Check if we're in development mode
   if (import.meta.env.DEV) {
-    return 'http://localhost:5001';
+    return 'http://localhost:5000';
   }
 
   // Check if we're accessing via localhost
