@@ -7,7 +7,7 @@ const getApiBaseUrl = () => {
 
   // Check if we're accessing via localhost
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `http://${window.location.hostname}:${window.location.port || 5001}`;
+    return `http://${window.location.hostname}:${window.location.port || 5000}`;
   }
 
   // Production URL
