@@ -6,9 +6,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, ChevronLeft, ChevronRight, AlertCircle, Save } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRealtimeTest } from "@/hooks/useRealtimeTest";
 
 interface Question {
   id: string;
@@ -60,13 +59,7 @@ export default function TestInterface() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [startTime] = useState(new Date());
-
-  const { isConnected } = useRealtimeTest({
-    testId,
-    autoConnect: true
-  });
 
   useEffect(() => {
     if (!testId) {
@@ -88,16 +81,6 @@ export default function TestInterface() {
     }
   }, [timeLeft, attempt]);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (timeLeft > 0 && attempt?.status === 'in_progress') {
-      timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [timeLeft, attempt?.status]);
-
   const initializeTest = async () => {
     try {
       setLoading(true);
@@ -114,7 +97,19 @@ export default function TestInterface() {
       });
 
       if (!testResponse.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = testResponse.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          throw new Error('Authentication required. Please log in to access this test.');
+        }
+
         throw new Error('Failed to fetch test details');
+      }
+
+      // Ensure response is JSON
+      const testContentType = testResponse.headers.get("content-type");
+      if (!testContentType || !testContentType.includes("application/json")) {
+        throw new TypeError('Expected JSON response for test details');
       }
 
       const testData = await testResponse.json();
@@ -133,7 +128,19 @@ export default function TestInterface() {
       });
 
       if (!questionsResponse.ok) {
+        // Check if response is HTML (authentication redirect)
+        const questionsContentType = questionsResponse.headers.get("content-type");
+        if (questionsContentType && questionsContentType.includes("text/html")) {
+          throw new Error('Authentication required. Please log in to access test questions.');
+        }
+
         throw new Error('Failed to fetch questions');
+      }
+
+      // Ensure response is JSON
+      const questionsContentType = questionsResponse.headers.get("content-type");
+      if (!questionsContentType || !questionsContentType.includes("application/json")) {
+        throw new TypeError('Expected JSON response for questions');
       }
 
       const questionsData = await questionsResponse.json();
@@ -181,16 +188,33 @@ export default function TestInterface() {
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const existingAnswers: Record<string, number> = {};
-        data.data?.forEach((answer: any) => {
-          if (answer.selected_option !== null) {
-            existingAnswers[answer.question_id] = answer.selected_option;
-          }
-        });
-        setAnswers(existingAnswers);
+      if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.warn('Received HTML response for answers, authentication may be required');
+          return;
+        }
+
+        console.error('Failed to fetch existing answers:', response.status);
+        return;
       }
+
+      // Ensure response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error('Expected JSON response for answers');
+        return;
+      }
+
+      const data = await response.json();
+      const existingAnswers: Record<string, number> = {};
+      data.data?.forEach((answer: any) => {
+        if (answer.selected_option !== null) {
+          existingAnswers[answer.question_id] = answer.selected_option;
+        }
+      });
+      setAnswers(existingAnswers);
     } catch (error) {
       console.error('Error fetching existing answers:', error);
     }
@@ -222,8 +246,6 @@ export default function TestInterface() {
       if (!response.ok) {
         throw new Error('Failed to save answer');
       }
-
-      setLastSaved(new Date());
     } catch (error) {
       console.error('Error saving answer:', error);
     } finally {
@@ -233,7 +255,6 @@ export default function TestInterface() {
 
   const handleAnswerChange = (questionId: string, selectedOption: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: selectedOption }));
-    saveAnswer(questionId, selectedOption);
   };
 
   const handleTimeout = async () => {
@@ -241,15 +262,27 @@ export default function TestInterface() {
 
     try {
       const token = await supabase.auth.getSession();
-      if (!token.data.session.access_token) return;
+      if (!token.data.session?.access_token) return;
 
-      await fetch(`/api/attempts/${attempt.id}/submit`, {
+      const response = await fetch(`/api/attempts/${attempt.id}/submit`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`,
           'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.warn('Authentication required during timeout submission');
+          window.location.href = `/login?redirect=/test/${testId}`;
+          return;
+        }
+
+        console.error('Failed to submit test on timeout:', response.status);
+      }
 
       window.location.href = `/test/${testId}/results`;
     } catch (error) {
@@ -262,7 +295,10 @@ export default function TestInterface() {
 
     try {
       const token = await supabase.auth.getSession();
-      if (!token.data.session.access_token) return;
+      if (!token.data.session?.access_token) {
+        setError('Authentication required. Please log in to submit the test.');
+        return;
+      }
 
       const response = await fetch(`/api/attempts/${attempt.id}/submit`, {
         method: 'POST',
@@ -273,13 +309,20 @@ export default function TestInterface() {
       });
 
       if (!response.ok) {
+        // Check if response is HTML (authentication redirect)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          setError('Authentication required. Please log in to submit the test.');
+          return;
+        }
+
         throw new Error('Failed to submit test');
       }
 
       window.location.href = `/test/${testId}/results`;
     } catch (error) {
       console.error('Error submitting test:', error);
-      setError('Failed to submit test');
+      setError(error instanceof Error ? error.message : 'Failed to submit test');
     }
   };
 
@@ -346,18 +389,8 @@ export default function TestInterface() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h1 className="text-xl font-bold text-foreground">{test.title}</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                {isConnected ? 'Connected' : 'Offline'}
-              </div>
             </div>
             <div className="flex items-center gap-4">
-              {lastSaved && (
-                <div className="flex items-center gap-1 text-sm text-green-600">
-                  <Save className="h-4 w-4" />
-                  Saved {lastSaved.toLocaleTimeString()}
-                </div>
-              )}
               <div className="flex items-center gap-2">
                 <Clock className={`h-5 w-5 ${timeLeft < 300 ? "text-destructive animate-pulse" : "text-muted-foreground"}`} />
                 <span className={`text-lg font-semibold ${timeLeft < 300 ? "text-destructive" : "text-foreground"}`} data-testid="text-timer">
@@ -393,7 +426,6 @@ export default function TestInterface() {
                     handleAnswerChange(currentQuestionData.id, parseInt(value));
                   }}
                   data-testid="radio-options"
-                  disabled={saving}
                 >
                   {[
                     { option: currentQuestionData.option_a, index: 0 },
@@ -411,12 +443,7 @@ export default function TestInterface() {
                   ))}
                 </RadioGroup>
 
-                {saving && (
-                  <div className="mt-4 text-sm text-blue-600 flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
-                    Saving answer...
-                  </div>
-                )}
+
               </div>
 
               <div className="flex items-center justify-between pt-6 border-t border-border">

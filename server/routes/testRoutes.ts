@@ -423,16 +423,6 @@ router.get('/user/attempts', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/tests/:id/session - Get test session
-router.get('/:id/session', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const session = await testService.getTestSession(id);
-    res.json({ success: true, data: session });
-  } catch (error) {
-    console.error('Get test session error:', error);
-    res.status(500).json({ error: 'Failed to fetch test session' });
-  }
-});
+
 
 export default router;

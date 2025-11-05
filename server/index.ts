@@ -1,8 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-// import { initializeWebSocketServer } from "./websocket";
-// import { testScheduler } from "./services/testScheduler";
 
 const app = express();
 app.use(express.json());
@@ -41,14 +39,6 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Initialize WebSocket server (disabled for now)
-  // const wsPort = parseInt(process.env.WS_PORT || '5050', 10);
-  // initializeWebSocketServer(wsPort);
-  // log(`WebSocket server initialized on port ${wsPort}`);
-
-  // Initialize test scheduler (disabled for now)
-  // log('Test scheduler initialized');
-
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -56,6 +46,10 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
+
+  // Register API routes BEFORE Vite setup to ensure they take precedence over catch-all
+  const simpleTestRoutes = (await import("./simple-test-api")).default;
+  app.use("/api/tests", simpleTestRoutes);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

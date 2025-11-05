@@ -25,7 +25,6 @@ import {
   UserCheck,
   UserX
 } from 'lucide-react';
-import { useRealtimeTest } from '@/hooks/useRealtimeTest';
 import { supabase } from '@/lib/supabaseClient';
 
 interface Test {
@@ -73,18 +72,7 @@ export default function TestMonitoringDashboard({ testId, test }: TestMonitoring
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const {
-    isConnected,
-    isConnecting,
-    error: wsError,
-    stats,
-    joinTestSession,
-    leaveTestSession,
-    getTestStatus
-  } = useRealtimeTest({
-    testId,
-    autoConnect: true
-  });
+  const [stats, setStats] = useState<TestStats | null>(null);
 
   useEffect(() => {
     fetchAttempts();
@@ -92,16 +80,7 @@ export default function TestMonitoringDashboard({ testId, test }: TestMonitoring
     return () => clearInterval(interval);
   }, [testId]);
 
-  useEffect(() => {
-    // Join test session for real-time updates
-    if (isConnected) {
-      joinTestSession(testId);
-    }
 
-    return () => {
-      leaveTestSession(testId);
-    };
-  }, [isConnected, testId, joinTestSession, leaveTestSession]);
 
   const fetchAttempts = async () => {
     try {
@@ -189,7 +168,6 @@ export default function TestMonitoringDashboard({ testId, test }: TestMonitoring
 
   const refreshData = () => {
     fetchAttempts();
-    getTestStatus(testId);
   };
 
   if (loading) {
@@ -202,13 +180,13 @@ export default function TestMonitoringDashboard({ testId, test }: TestMonitoring
     );
   }
 
-  if (error || wsError) {
+  if (error) {
     return (
       <div className="p-6">
         <Card className="p-6 text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Error Loading Data</h3>
-          <p className="text-muted-foreground mb-4">{error || wsError}</p>
+          <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={refreshData}>Retry</Button>
         </Card>
       </div>
@@ -230,8 +208,8 @@ export default function TestMonitoringDashboard({ testId, test }: TestMonitoring
               {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
             </Badge>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              {isConnected ? 'Connected' : 'Disconnected'}
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              Connected
             </div>
           </div>
         </div>
