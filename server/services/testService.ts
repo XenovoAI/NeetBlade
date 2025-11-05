@@ -57,17 +57,7 @@ export interface TestAnswer {
   time_spent_seconds?: number;
 }
 
-export interface TestSession {
-  id: string;
-  test_id: string;
-  active_participants: number;
-  completed_participants: number;
-  session_status: 'waiting' | 'active' | 'ended';
-  actual_start_time?: string;
-  actual_end_time?: string;
-  created_at: string;
-  updated_at: string;
-}
+
 
 export class TestService {
   // Test CRUD operations
@@ -321,52 +311,7 @@ export class TestService {
     return { score, totalPoints };
   }
 
-  // Test Session operations
-  async getTestSession(testId: string): Promise<TestSession | null> {
-    const { data, error } = await supabase
-      .from('test_sessions')
-      .select('*')
-      .eq('test_id', testId)
-      .single();
 
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to fetch test session: ${error.message}`);
-    }
-    return data;
-  }
-
-  async updateTestSession(testId: string, updates: Partial<TestSession>): Promise<TestSession> {
-    const { data, error } = await supabase
-      .from('test_sessions')
-      .update(updates)
-      .eq('test_id', testId)
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to update test session: ${error.message}`);
-    return data;
-  }
-
-  // Real-time subscriptions
-  subscribeToTestAttempts(callback: (payload: any) => void) {
-    return supabase
-      .channel('test_attempts_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'test_attempts' },
-        callback
-      )
-      .subscribe();
-  }
-
-  subscribeToTestSessions(callback: (payload: any) => void) {
-    return supabase
-      .channel('test_sessions_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'test_sessions' },
-        callback
-      )
-      .subscribe();
-  }
 
   // Test validation
   async canUserStartTest(testId: string, userId: string): Promise<{ canStart: boolean; reason?: string }> {
@@ -377,18 +322,6 @@ export class TestService {
 
     if (test.status !== 'active') {
       return { canStart: false, reason: `Test is ${test.status}` };
-    }
-
-    const now = new Date();
-    const startTime = new Date(test.scheduled_start);
-    const endTime = new Date(test.scheduled_end!);
-
-    if (now < startTime) {
-      return { canStart: false, reason: 'Test has not started yet' };
-    }
-
-    if (now > endTime) {
-      return { canStart: false, reason: 'Test has already ended' };
     }
 
     // Check if user already has an attempt

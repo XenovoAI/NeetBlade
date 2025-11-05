@@ -3,10 +3,9 @@ import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, FileText, Play, Users, Calendar } from "lucide-react";
+import { Clock, Play } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabaseClient";
 import { API_BASE_URL } from "@/lib/api";
 
 interface Test {
@@ -22,156 +21,41 @@ interface Test {
   updated_at: string;
 }
 
-interface TestSession {
-  id: string;
-  test_id: string;
-  active_participants: number;
-  completed_participants: number;
-  session_status: 'waiting' | 'active' | 'ended';
-  actual_start_time?: string;
-  actual_end_time?: string;
-}
-
 export default function LiveTestsPage() {
   const [tests, setTests] = useState<Test[]>([]);
-  const [sessions, setSessions] = useState<Map<string, TestSession>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTests();
-    const interval = setInterval(fetchTests, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
   }, []);
 
   const fetchTests = async () => {
     try {
-      // Make API call without requiring authentication
-      // Tests are public and can be viewed by anyone
       const response = await fetch(`${API_BASE_URL}/api/tests?status=scheduled,active,completed`);
 
       if (!response.ok) {
-        // Check if response is HTML (authentication redirect)
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          console.warn('Received HTML response, tests may not be accessible without authentication');
-          setTests([]);
-          return;
-        }
-
-        // Try to get error message from response
         let errorMessage = `Failed to fetch tests (${response.status})`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch {
-          // If we can't parse as JSON, use the status text
           const errorText = await response.text();
           if (errorText) {
-            errorMessage = errorText.substring(0, 100); // Limit error message length
+            errorMessage = errorText.substring(0, 100);
           }
         }
-
         throw new Error(errorMessage);
       }
 
-      // Try to parse as JSON first, handle gracefully if it fails
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.warn('Failed to parse response as JSON:', parseError);
-        // Check if it's HTML content
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          setError('Server returned an unexpected response. Please try again later.');
-        } else {
-          setError('Server returned invalid data format. Please try again later.');
-        }
-        setTests([]);
-        return;
-      }
-
-      // Validate that we got expected data structure
-      if (!data || typeof data !== 'object') {
-        console.warn('Response data is not in expected format:', data);
-        setError('Server returned invalid data format. Please try again later.');
-        setTests([]);
-        return;
-      }
-
+      const data = await response.json();
       setTests(data.data || []);
-
-      // Fetch session data for active tests
-      const activeTests = (data.data || []).filter((test: Test) =>
-        test.status === 'scheduled' || test.status === 'active'
-      );
-
-      for (const test of activeTests) {
-        fetchTestSession(test.id);
-      }
-
     } catch (error) {
       console.error('Error fetching tests:', error);
       setError(error instanceof Error ? error.message : 'Failed to load tests');
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchTestSession = async (testId: string) => {
-    try {
-      const token = await supabase.auth.getSession();
-      if (!token.data.session?.access_token) return;
-
-      const response = await fetch(`${API_BASE_URL}/api/tests/${testId}/session`, {
-        headers: {
-          'Authorization': `Bearer ${token.data.session.access_token}`
-        }
-      });
-
-      if (!response.ok) {
-        // Check if response is HTML (authentication redirect)
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          console.warn('Received HTML response for test session, authentication may be required');
-          return;
-        }
-
-        console.error('Failed to fetch test session:', response.status);
-        return;
-      }
-
-      // Ensure response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error('Expected JSON response for test session');
-        return;
-      }
-
-      const data = await response.json();
-      if (data.data) {
-        setSessions(prev => new Map(prev.set(testId, data.data)));
-      }
-    } catch (error) {
-      console.error('Error fetching test session:', error);
-    }
-  };
-
-  const formatTimeRemaining = (startTime: string) => {
-    const now = new Date();
-    const start = new Date(startTime);
-    const diff = start.getTime() - now.getTime();
-
-    if (diff <= 0) return 'Starting soon';
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
   };
 
   const getStatusColor = (status: Test['status']) => {
@@ -192,9 +76,6 @@ export default function LiveTestsPage() {
       case 'scheduled':
         return 'View Test';
       case 'active':
-        const endTime = new Date(test.scheduled_end!);
-        const now = new Date();
-        if (now >= endTime) return 'Test Ended';
         return 'Start Test';
       case 'completed':
         return 'View Results';
@@ -217,11 +98,6 @@ export default function LiveTestsPage() {
   };
 
   const isActionDisabled = (test: Test) => {
-    if (test.status === 'active') {
-      const endTime = new Date(test.scheduled_end!);
-      const now = new Date();
-      return now >= endTime;
-    }
     return test.status === 'draft';
   };
 
@@ -255,8 +131,8 @@ export default function LiveTestsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Live Test Series</h1>
-          <p className="text-lg text-muted-foreground">Practice with scheduled tests and real-time monitoring</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Test Series</h1>
+          <p className="text-lg text-muted-foreground">Practice with available tests</p>
         </div>
 
         {tests.length === 0 ? (
@@ -265,74 +141,44 @@ export default function LiveTestsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tests.map((test) => {
-              const session = sessions.get(test.id);
-              return (
-                <Card key={test.id} className="p-6 hover-elevate transition-all" data-testid={`card-test-${test.id}`}>
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-foreground mb-2">{test.title}</h3>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" data-testid={`badge-subject-${test.id}`}>
-                          {test.subject}
-                        </Badge>
-                        <Badge className={getStatusColor(test.status)} data-testid={`badge-status-${test.id}`}>
-                          {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
-                        </Badge>
-                      </div>
-                      {test.description && (
-                        <p className="text-sm text-muted-foreground mb-2">{test.description}</p>
-                      )}
+            {tests.map((test) => (
+              <Card key={test.id} className="p-6 hover-elevate transition-all" data-testid={`card-test-${test.id}`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">{test.title}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" data-testid={`badge-subject-${test.id}`}>
+                        {test.subject}
+                      </Badge>
+                      <Badge className={getStatusColor(test.status)} data-testid={`badge-status-${test.id}`}>
+                        {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
+                      </Badge>
                     </div>
-                  </div>
-
-                  <div className="space-y-2 mb-6">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span>{test.duration_minutes} minutes</span>
-                    </div>
-
-                    {(test.status === 'scheduled' || test.status === 'active') && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {test.status === 'scheduled'
-                            ? `Starts in ${formatTimeRemaining(test.scheduled_start)}`
-                            : `Ends in ${formatTimeRemaining(test.scheduled_end!)}`
-                          }
-                        </span>
-                      </div>
-                    )}
-
-                    {session && (session.active_participants > 0 || session.completed_participants > 0) && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span>
-                          {session.active_participants} active, {session.completed_participants} completed
-                        </span>
-                      </div>
-                    )}
-
-                    {test.status === 'scheduled' && (
-                      <div className="text-sm text-blue-600 font-medium">
-                        Starts: {new Date(test.scheduled_start).toLocaleString()}
-                      </div>
+                    {test.description && (
+                      <p className="text-sm text-muted-foreground mb-2">{test.description}</p>
                     )}
                   </div>
+                </div>
 
-                  <Link href={getActionLink(test)}>
-                    <Button
-                      className="w-full"
-                      disabled={isActionDisabled(test)}
-                      data-testid={`button-action-${test.id}`}
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      {getActionText(test)}
-                    </Button>
-                  </Link>
-                </Card>
-              );
-            })}
+                <div className="space-y-2 mb-6">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{test.duration_minutes} minutes</span>
+                  </div>
+                </div>
+
+                <Link href={getActionLink(test)}>
+                  <Button
+                    className="w-full"
+                    disabled={isActionDisabled(test)}
+                    data-testid={`button-action-${test.id}`}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    {getActionText(test)}
+                  </Button>
+                </Link>
+              </Card>
+            ))}
           </div>
         )}
       </div>

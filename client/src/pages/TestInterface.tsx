@@ -6,9 +6,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, ChevronLeft, ChevronRight, AlertCircle, Save } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRealtimeTest } from "@/hooks/useRealtimeTest";
 
 interface Question {
   id: string;
@@ -60,13 +59,7 @@ export default function TestInterface() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [startTime] = useState(new Date());
-
-  const { isConnected } = useRealtimeTest({
-    testId,
-    autoConnect: false
-  });
 
   useEffect(() => {
     if (!testId) {
@@ -87,16 +80,6 @@ export default function TestInterface() {
       setShowWarningDialog(true);
     }
   }, [timeLeft, attempt]);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (timeLeft > 0 && attempt?.status === 'in_progress') {
-      timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [timeLeft, attempt?.status]);
 
   const initializeTest = async () => {
     try {
@@ -261,16 +244,8 @@ export default function TestInterface() {
       });
 
       if (!response.ok) {
-        // Check if response is HTML (authentication redirect)
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          throw new Error('Authentication required. Please log in to save answers.');
-        }
-
         throw new Error('Failed to save answer');
       }
-
-      setLastSaved(new Date());
     } catch (error) {
       console.error('Error saving answer:', error);
     } finally {
@@ -280,7 +255,6 @@ export default function TestInterface() {
 
   const handleAnswerChange = (questionId: string, selectedOption: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: selectedOption }));
-    saveAnswer(questionId, selectedOption);
   };
 
   const handleTimeout = async () => {
@@ -415,18 +389,8 @@ export default function TestInterface() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h1 className="text-xl font-bold text-foreground">{test.title}</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                {isConnected ? 'Connected' : 'Offline'}
-              </div>
             </div>
             <div className="flex items-center gap-4">
-              {lastSaved && (
-                <div className="flex items-center gap-1 text-sm text-green-600">
-                  <Save className="h-4 w-4" />
-                  Saved {lastSaved.toLocaleTimeString()}
-                </div>
-              )}
               <div className="flex items-center gap-2">
                 <Clock className={`h-5 w-5 ${timeLeft < 300 ? "text-destructive animate-pulse" : "text-muted-foreground"}`} />
                 <span className={`text-lg font-semibold ${timeLeft < 300 ? "text-destructive" : "text-foreground"}`} data-testid="text-timer">
@@ -462,7 +426,6 @@ export default function TestInterface() {
                     handleAnswerChange(currentQuestionData.id, parseInt(value));
                   }}
                   data-testid="radio-options"
-                  disabled={saving}
                 >
                   {[
                     { option: currentQuestionData.option_a, index: 0 },
@@ -480,12 +443,7 @@ export default function TestInterface() {
                   ))}
                 </RadioGroup>
 
-                {saving && (
-                  <div className="mt-4 text-sm text-blue-600 flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
-                    Saving answer...
-                  </div>
-                )}
+
               </div>
 
               <div className="flex items-center justify-between pt-6 border-t border-border">
