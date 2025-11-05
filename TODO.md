@@ -10,5 +10,6 @@
 
 ## Tasks
 - [x] Update `server/routes.ts` to remove API route registration, only create server
-- [x] Update `server/index.ts` to import and register API routes after Vite setup
-- [ ] Test the fix by running the server and checking API responses
+- [x] Update `server/index.ts` to import and register API routes before Vite setup
+- [x] Update `server/vite.ts` to skip API routes in catch-all middleware
+- [x] Test the fix by running the server and checking API responses

@@ -47,6 +47,10 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Register API routes BEFORE Vite setup to ensure they take precedence over catch-all
+  const simpleTestRoutes = (await import("./simple-test-api")).default;
+  app.use("/api/tests", simpleTestRoutes);
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -55,10 +59,6 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
-
-  // Register API routes after Vite setup to ensure they take precedence over catch-all
-  const simpleTestRoutes = (await import("./simple-test-api")).default;
-  app.use("/api/tests", simpleTestRoutes);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
