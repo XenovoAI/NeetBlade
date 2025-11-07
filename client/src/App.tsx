@@ -22,6 +22,7 @@ import Shop from "@/pages/Shop";
 import Payment from "@/pages/Payment";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import MyPurchases from "@/pages/MyPurchases";
+import SimpleTestUpload from "@/pages/SimpleTestUpload";
 import NotFound from "@/pages/not-found";
 
 function Router() {
