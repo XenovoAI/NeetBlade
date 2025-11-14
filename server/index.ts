@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import dotenv from 'dotenv';
+dotenv.config({ path: './.env' });
 
 const app = express();
 app.use(express.json());
@@ -48,8 +50,6 @@ app.use((req, res, next) => {
   });
 
   // Register API routes BEFORE Vite setup to ensure they take precedence over catch-all
-  const simpleTestRoutes = (await import("./simple-test-api")).default;
-  app.use("/api/tests", simpleTestRoutes);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
@@ -66,7 +66,7 @@ app.use((req, res, next) => {
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen(port, "localhost", () => {
-    log(`serving on port ${port}`);
+    console.log(`serving on port ${port}`);
   });
 
   // Graceful shutdown

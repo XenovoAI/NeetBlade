@@ -22,7 +22,6 @@ import Shop from "@/pages/Shop";
 import Payment from "@/pages/Payment";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import MyPurchases from "@/pages/MyPurchases";
-import SimpleTestUpload from "@/pages/SimpleTestUpload";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -36,7 +35,6 @@ function Router() {
       <Route path="/materials" component={StudyMaterialsPage} />
       <Route path="/materials/:subject" component={StudyMaterialsPage} />
       <Route path="/tests" component={LiveTestsPage} />
-      <Route path="/upload-test" component={SimpleTestUpload} />
       <Route path="/test/:id" component={TestInterface} />
       <Route path="/test/:id/results" component={TestResults} />
       <Route path="/results" component={TestResults} />
