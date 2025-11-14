@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Users, FileText, BarChart3, Settings, Upload, Trash2, Edit, Loader2, ShieldAlert, IndianRupee, Copy, ExternalLink } from "lucide-react";
 import AdminMaterialUploadModal from "./AdminMaterialUploadModal";
-import AdminTestManagement from "@/components/AdminTestManagement";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
@@ -28,7 +27,6 @@ export default function Admin() {
   // Declare ALL hooks at the top before any conditional returns
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userCount, setUserCount] = useState(0);
-  const [testCount, setTestCount] = useState(0);
   const [materialCount, setMaterialCount] = useState(0);
   const [attemptCount, setAttemptCount] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
@@ -49,7 +47,6 @@ export default function Admin() {
     
     // Fetch counts
     supabase.from("users").select("id", { count: "exact", head: true }).then(({ count }) => setUserCount(count || 0));
-    supabase.from("tests").select("id", { count: "exact", head: true }).then(({ count }) => setTestCount(count || 0));
     supabase.from("materials").select("id", { count: "exact", head: true }).then(({ count }) => setMaterialCount(count || 0));
     supabase.from("attempts").select("id", { count: "exact", head: true }).then(({ count }) => setAttemptCount(count || 0));
     // Fetch users
@@ -201,14 +198,6 @@ export default function Admin() {
             <p className="text-sm text-muted-foreground mt-1">{userCount === 0 ? "No users yet" : `${userCount} users`}</p>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Total Tests</span>
-              <FileText className="h-5 w-5 text-primary" />
-            </div>
-            <div className="text-3xl font-bold text-foreground" data-testid="text-total-tests">{testCount}</div>
-            <p className="text-sm text-muted-foreground mt-1">{testCount === 0 ? "No tests created" : `${testCount} tests`}</p>
-          </Card>
 
           <Card className="p-6">
             <div className="flex items-center justify-between mb-2">
@@ -235,7 +224,6 @@ export default function Admin() {
             <TabsTrigger value="payments" data-testid="tab-payments">Payments</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
             <TabsTrigger value="materials" data-testid="tab-materials">Materials</TabsTrigger>
-            <TabsTrigger value="tests" data-testid="tab-tests">Tests</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -545,9 +533,6 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="tests">
-            <AdminTestManagement />
-          </TabsContent>
         </Tabs>
       </div>
 
