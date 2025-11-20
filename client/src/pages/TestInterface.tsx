@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -47,7 +47,32 @@ interface Test {
 }
 
 export default function TestInterface() {
-  const { testId } = useParams<{ testId: string }>();
+  const params = useParams<{ id: string }>();
+  const [location] = useLocation();
+  
+  // Extract testId using multiple methods as fallback
+  const [testId, setTestId] = useState<string | undefined>(() => {
+    return params.id || (() => {
+      const path = window.location.pathname;
+      const pathMatch = path.match(/\/test\/([^\/]+)/);
+      return pathMatch ? pathMatch[1] : undefined;
+    })();
+  });
+
+  // Update testId when params change
+  useEffect(() => {
+    if (params.id && params.id !== testId) {
+      setTestId(params.id);
+    } else if (!params.id && !testId) {
+      // Try to extract from current URL
+      const path = window.location.pathname;
+      const pathMatch = path.match(/\/test\/([^\/]+)/);
+      if (pathMatch && pathMatch[1]) {
+        setTestId(pathMatch[1]);
+      }
+    }
+  }, [params.id, location]);
+  
   const [test, setTest] = useState<Test | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [attempt, setAttempt] = useState<TestAttempt | null>(null);
@@ -63,8 +88,14 @@ export default function TestInterface() {
 
   useEffect(() => {
     if (!testId) {
-      setError('Test ID is required');
-      return;
+      // Wait a bit more for routing to settle
+      const timer = setTimeout(() => {
+        if (!testId) {
+          setError('Test ID is required - please access this page through a valid test link');
+          setLoading(false);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
 
     initializeTest();
@@ -86,13 +117,15 @@ export default function TestInterface() {
       setLoading(true);
       const token = await supabase.auth.getSession();
       if (!token.data.session?.access_token) {
-        throw new Error('Not authenticated');
+        throw new Error('Not authenticated - please login first');
       }
+
+      const accessToken = token.data.session.access_token;
 
       // Fetch test details
       const testResponse = await fetch(`/api/tests/${testId}`, {
         headers: {
-          'Authorization': `Bearer ${token.data.session.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       });
 
@@ -117,13 +150,13 @@ export default function TestInterface() {
 
       // Check if test is active
       if (testData.data.status !== 'active') {
-        throw new Error(`Test is ${testData.data.status}. Cannot start test.`);
+        throw new Error(`Test is ${testData.data.status}. Cannot start test. Please ask admin to start the test.`);
       }
 
       // Fetch questions
       const questionsResponse = await fetch(`/api/tests/${testId}/questions`, {
         headers: {
-          'Authorization': `Bearer ${token.data.session.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       });
 
@@ -146,11 +179,15 @@ export default function TestInterface() {
       const questionsData = await questionsResponse.json();
       setQuestions(questionsData.data || []);
 
+      if (!questionsData.data || questionsData.data.length === 0) {
+        throw new Error('This test has no questions. Please ask admin to add questions.');
+      }
+
       // Start or get existing attempt
       const attemptResponse = await fetch(`/api/tests/${testId}/start`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token.data.session.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -170,7 +207,21 @@ export default function TestInterface() {
       setTimeLeft(remainingSeconds);
 
       // Fetch existing answers
-      await fetchExistingAnswers(attemptData.data.id, token.data.session.access_token);
+      await fetchExistingAnswers(attemptData.data.id, accessToken);
+
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Cleanup timer on unmount
+      return () => clearInterval(timer);
 
     } catch (error) {
       console.error('Error initializing test:', error);
@@ -182,7 +233,7 @@ export default function TestInterface() {
 
   const fetchExistingAnswers = async (attemptId: string, token: string) => {
     try {
-      const response = await fetch(`/api/attempts/${attemptId}/answers`, {
+      const response = await fetch(`/api/tests/attempts/${attemptId}/answers`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -230,7 +281,7 @@ export default function TestInterface() {
 
       const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
-      const response = await fetch(`/api/attempts/${attempt.id}/answers`, {
+      const response = await fetch(`/api/tests/attempts/${attempt.id}/answers`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`,
@@ -255,6 +306,8 @@ export default function TestInterface() {
 
   const handleAnswerChange = (questionId: string, selectedOption: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: selectedOption }));
+    // Save answer immediately
+    saveAnswer(questionId, selectedOption);
   };
 
   const handleTimeout = async () => {
@@ -264,7 +317,7 @@ export default function TestInterface() {
       const token = await supabase.auth.getSession();
       if (!token.data.session?.access_token) return;
 
-      const response = await fetch(`/api/attempts/${attempt.id}/submit`, {
+      const response = await fetch(`/api/tests/attempts/${attempt.id}/submit`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`,
@@ -300,7 +353,7 @@ export default function TestInterface() {
         return;
       }
 
-      const response = await fetch(`/api/attempts/${attempt.id}/submit`, {
+      const response = await fetch(`/api/tests/attempts/${attempt.id}/submit`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`,
@@ -333,12 +386,12 @@ export default function TestInterface() {
     return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  if (loading) {
+  if (loading || !testId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Initializing test...</p>
+          <p>{!testId ? 'Loading test...' : 'Initializing test...'}</p>
         </div>
       </div>
     );
@@ -352,6 +405,7 @@ export default function TestInterface() {
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Error</h2>
             <p className="text-muted-foreground mb-4">{error}</p>
+
             <Button onClick={() => window.location.href = '/live-tests'}>
               Back to Tests
             </Button>

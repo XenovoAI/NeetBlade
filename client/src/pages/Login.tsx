@@ -32,7 +32,7 @@ export default function Login() {
     if (error) {
       setError(error.message);
     } else if (data.session) {
-      console.log("Login successful:", data.session.user.email);
+
       // Redirect to dashboard for regular users
       setLocation(redirectTo);
     }

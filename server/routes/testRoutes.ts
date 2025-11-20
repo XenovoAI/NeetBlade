@@ -5,10 +5,20 @@ import { createClient } from '@supabase/supabase-js';
 // Validation schemas
 import { z } from 'zod';
 
-// Supabase client for auth
-const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Lazy Supabase client for auth
+function getSupabaseClient() {
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+  
+  console.log('TestRoutes Supabase config:', { 
+    url: supabaseUrl, 
+    keyLength: supabaseKey?.length,
+    hasUrl: !!process.env.SUPABASE_URL,
+    hasKey: !!process.env.SUPABASE_ANON_KEY
+  });
+  
+  return createClient(supabaseUrl, supabaseKey);
+}
 
 // Extend Express Request type to include user
 declare global {
@@ -69,14 +79,14 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
     // For now, we'll assume the token contains user info
     // In production, you should verify the token with Supabase auth
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await getSupabaseClient().auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Check if user is admin
-    const { data: userData } = await supabase
+    const { data: userData } = await getSupabaseClient()
       .from('users')
       .select('is_admin')
       .eq('id', user.id)
@@ -103,7 +113,7 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
     }
 
     const token = authHeader.substring(7);
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await getSupabaseClient().auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -279,13 +289,6 @@ router.post('/:id/start', requireAuth, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Check if user can start the test
-    const { canStart, reason } = await testService.canUserStartTest(id, userId);
-
-    if (!canStart) {
-      return res.status(400).json({ error: reason });
-    }
-
     const attempt = await testService.startTestAttempt(id, userId);
     res.status(201).json({ success: true, data: attempt });
   } catch (error) {
@@ -399,18 +402,6 @@ router.post('/attempts/:attemptId/submit', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/tests/:id/attempts - Get all attempts for a test (admin only)
-router.get('/:id/attempts', requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const attempts = await testService.getTestAttemptsByTestId(id);
-    res.json({ success: true, data: attempts });
-  } catch (error) {
-    console.error('Get test attempts error:', error);
-    res.status(500).json({ error: 'Failed to fetch test attempts' });
-  }
-});
-
 // GET /api/user/attempts - Get current user's test attempts
 router.get('/user/attempts', requireAuth, async (req, res) => {
   try {
@@ -420,6 +411,18 @@ router.get('/user/attempts', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Get user attempts error:', error);
     res.status(500).json({ error: 'Failed to fetch user attempts' });
+  }
+});
+
+// GET /api/tests/:id/attempts - Get all attempts for a test (admin only)
+router.get('/:id/attempts', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const attempts = await testService.getTestAttemptsByTestId(id);
+    res.json({ success: true, data: attempts });
+  } catch (error) {
+    console.error('Get test attempts error:', error);
+    res.status(500).json({ error: 'Failed to fetch test attempts' });
   }
 });
 

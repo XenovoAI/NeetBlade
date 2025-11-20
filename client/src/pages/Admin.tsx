@@ -51,7 +51,7 @@ export default function Admin() {
     supabase.from("users").select("id", { count: "exact", head: true }).then(({ count }) => setUserCount(count || 0));
     supabase.from("tests").select("id", { count: "exact", head: true }).then(({ count }) => setTestCount(count || 0));
     supabase.from("materials").select("id", { count: "exact", head: true }).then(({ count }) => setMaterialCount(count || 0));
-    supabase.from("attempts").select("id", { count: "exact", head: true }).then(({ count }) => setAttemptCount(count || 0));
+    supabase.from("test_attempts").select("id", { count: "exact", head: true }).then(({ count }) => setAttemptCount(count || 0));
     // Fetch users
     supabase.from("users").select("id, email, username, created_at").then(({ data }) => setUsers(data || []));
     // Fetch materials
@@ -232,10 +232,10 @@ export default function Admin() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6" data-testid="tabs-admin">
             <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="tests" data-testid="tab-tests">Live Tests</TabsTrigger>
+            <TabsTrigger value="materials" data-testid="tab-materials">Materials</TabsTrigger>
             <TabsTrigger value="payments" data-testid="tab-payments">Payments</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
-            <TabsTrigger value="materials" data-testid="tab-materials">Materials</TabsTrigger>
-            <TabsTrigger value="tests" data-testid="tab-tests">Tests</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">

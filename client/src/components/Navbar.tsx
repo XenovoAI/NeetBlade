@@ -41,9 +41,6 @@ export default function Navbar() {
               <Link href="/tests" className="text-sm font-medium text-foreground hover-elevate px-3 py-2 rounded-md transition-colors" data-testid="link-tests">
                 Live Tests
               </Link>
-              <Link href="/upload-test" className="text-sm font-medium text-primary hover-elevate px-3 py-2 rounded-md transition-colors" data-testid="link-upload-test">
-                Upload Test
-              </Link>
               <Link href="/about" className="text-sm font-medium text-foreground hover-elevate px-3 py-2 rounded-md transition-colors" data-testid="link-about">
                 About
               </Link>

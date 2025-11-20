@@ -62,7 +62,7 @@ export default function AdminLogin() {
       }
 
       // Success - redirect to admin panel
-      console.log("✅ Admin login successful");
+
       setLocation("/admin");
     } catch (err) {
       console.error("Login error:", err);
