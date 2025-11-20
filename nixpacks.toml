@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["nodejs-20_x", "yarn"]
+
+[phases.build]
+cmds = ["yarn install --frozen-lockfile", "yarn build"]
+
+[phases.start]
+cmd = "yarn start"
