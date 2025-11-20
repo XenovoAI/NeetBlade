@@ -69,8 +69,6 @@ export default function TestResults() {
         throw new Error(`Failed to fetch test results: ${response.status}`);
       }
 
-      let attempts: any[] = [];
-
       const data = await response.json();
       const attempts = data.data || [];
       
