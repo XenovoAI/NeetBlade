@@ -53,10 +53,7 @@ export default function TestResults() {
         throw new Error('Not authenticated');
       }
 
-      console.log('🔍 Fetching results for testId:', testId);
-
       // Get user's test attempts for this test
-      console.log('📡 Calling /api/tests/user/attempts');
       const response = await fetch(`/api/tests/user/attempts`, {
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`,
@@ -65,50 +62,17 @@ export default function TestResults() {
         }
       });
 
-      console.log('📡 Response status:', response.status, 'Content-Type:', response.headers.get('content-type'));
+
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ User attempts error:', errorText);
         throw new Error(`Failed to fetch test results: ${response.status}`);
       }
 
       let attempts: any[] = [];
 
-      // Handle 304 Not Modified responses
-      if (response.status === 304) {
-        console.log('📡 Got 304 Not Modified, trying to get fresh data');
-        // For 304 responses, try again with cache-busting
-        const freshResponse = await fetch(`/api/tests/user/attempts?t=${Date.now()}`, {
-          headers: {
-            'Authorization': `Bearer ${token.data.session.access_token}`,
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        if (!freshResponse.ok) {
-          const errorText = await freshResponse.text();
-          console.error('❌ Fresh request error:', errorText);
-          throw new Error(`Failed to fetch test results: ${freshResponse.status}`);
-        }
-        
-        const freshData = await freshResponse.json();
-        attempts = freshData.data || [];
-      } else {
-        // Check content type before parsing JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const responseText = await response.text();
-          console.error('❌ Expected JSON but got:', contentType, responseText.substring(0, 200));
-          throw new Error('Server returned non-JSON response for user attempts');
-        }
-
-        const data = await response.json();
-        attempts = data.data || [];
-      }
-      
-      console.log('📊 Found attempts:', attempts.length);
+      const data = await response.json();
+      const attempts = data.data || [];
       
       // Find the attempt for this test
       const testAttempt = attempts.find((attempt: any) => attempt.test_id === testId);
@@ -117,61 +81,31 @@ export default function TestResults() {
         throw new Error('Test attempt not found');
       }
 
-      console.log('📝 Found test attempt:', testAttempt.id);
-
       // Get test answers for detailed results
-      console.log('📡 Calling /api/tests/attempts/' + testAttempt.id + '/answers');
       const answersResponse = await fetch(`/api/tests/attempts/${testAttempt.id}/answers`, {
         headers: {
           'Authorization': `Bearer ${token.data.session.access_token}`
         }
       });
 
-      console.log('📡 Answers response status:', answersResponse.status, 'Content-Type:', answersResponse.headers.get('content-type'));
-
       if (!answersResponse.ok) {
-        const errorText = await answersResponse.text();
-        console.error('❌ Answers error:', errorText);
-        throw new Error(`Failed to fetch test answers: ${answersResponse.status}`);
-      }
-
-      // Check content type before parsing JSON
-      const answersContentType = answersResponse.headers.get('content-type');
-      if (!answersContentType || !answersContentType.includes('application/json')) {
-        const responseText = await answersResponse.text();
-        console.error('❌ Expected JSON but got:', answersContentType, responseText.substring(0, 200));
-        throw new Error('Server returned non-JSON response for answers');
+        throw new Error('Failed to fetch test answers');
       }
 
       const answersData = await answersResponse.json();
       const answers = answersData.data || [];
 
-      console.log('📊 Found answers:', answers.length);
-
       // Get test questions to calculate total questions
-      console.log('📡 Calling /api/tests/' + testId + '/questions');
       const questionsResponse = await fetch(`/api/tests/${testId}/questions`);
       
-      console.log('📡 Questions response status:', questionsResponse.status, 'Content-Type:', questionsResponse.headers.get('content-type'));
-
       if (!questionsResponse.ok) {
-        const errorText = await questionsResponse.text();
-        console.error('❌ Questions error:', errorText);
-        throw new Error(`Failed to fetch test questions: ${questionsResponse.status}`);
-      }
-
-      // Check content type before parsing JSON
-      const questionsContentType = questionsResponse.headers.get('content-type');
-      if (!questionsContentType || !questionsContentType.includes('application/json')) {
-        const responseText = await questionsResponse.text();
-        console.error('❌ Expected JSON but got:', questionsContentType, responseText.substring(0, 200));
-        throw new Error('Server returned non-JSON response for questions');
+        throw new Error('Failed to fetch test questions');
       }
 
       const questionsData = await questionsResponse.json();
       const questions = questionsData.data || [];
 
-      console.log('📊 Found questions:', questions.length);
+
 
       // Calculate results
       const correctAnswers = answers.filter((answer: any) => answer.is_correct).length;
