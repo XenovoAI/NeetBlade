@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-    "build:netlify": "vite build && npm run build:functions && copy _redirects dist\\_redirects",
+    "build:netlify": "vite build && npm run build:functions",
     "build:functions": "esbuild netlify/functions/*.ts --platform=node --packages=external --bundle --format=esm --outdir=netlify/functions --out-extension:.js=.js",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:prod": "cross-env NODE_ENV=production node -r dotenv/config dist/index.js",

@@ -62,7 +62,8 @@ The build command is now: `npm run build:netlify`
 This will:
 1. Build the React frontend with Vite
 2. Compile TypeScript functions to JavaScript
-3. Copy redirect rules to the dist folder
+
+Redirects are handled by `netlify.toml` configuration.
 
 ## Notes
 
