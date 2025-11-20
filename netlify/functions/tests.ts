@@ -1,15 +1,123 @@
 import { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-import { testService } from '../../server/services/testService';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-// Lazy Supabase client for auth
+// Supabase client
 function getSupabaseClient() {
   const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
   
   return createClient(supabaseUrl, supabaseKey);
 }
+
+// Simple test service for Netlify Functions
+class SimpleTestService {
+  private supabase = getSupabaseClient();
+
+  async getTests(filters?: { status?: string; subject?: string }) {
+    let query = this.supabase.from('tests').select('*');
+
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+
+    if (filters?.subject) {
+      query = query.eq('subject', filters.subject);
+    }
+
+    const { data, error } = await query.order('scheduled_start', { ascending: true });
+
+    if (error) throw new Error(`Failed to fetch tests: ${error.message}`);
+    return data || [];
+  }
+
+  async getTestById(id: string) {
+    const { data, error } = await this.supabase
+      .from('tests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to fetch test: ${error.message}`);
+    }
+    return data;
+  }
+
+  async getQuestionsByTestId(testId: string) {
+    const { data, error } = await this.supabase
+      .from('questions')
+      .select('*')
+      .eq('test_id', testId)
+      .order('order_index', { ascending: true });
+
+    if (error) throw new Error(`Failed to fetch questions: ${error.message}`);
+    return data || [];
+  }
+
+  async getTestAttemptsByUserId(userId: string) {
+    const { data, error } = await this.supabase
+      .from('test_attempts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('started_at', { ascending: false });
+
+    if (error) throw new Error(`Failed to fetch user test attempts: ${error.message}`);
+    return data || [];
+  }
+
+  async startTestAttempt(testId: string, userId: string) {
+    // Check if user already has an in-progress attempt
+    const { data: existingAttempts } = await this.supabase
+      .from('test_attempts')
+      .select('*')
+      .eq('test_id', testId)
+      .eq('user_id', userId)
+      .eq('status', 'in_progress');
+
+    if (existingAttempts && existingAttempts.length > 0) {
+      return existingAttempts[0];
+    }
+
+    // Create new attempt
+    const attemptData = {
+      test_id: testId,
+      user_id: userId,
+      status: 'in_progress'
+    };
+
+    const { data, error } = await this.supabase
+      .from('test_attempts')
+      .insert([attemptData])
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to start test attempt: ${error.message}`);
+    return data;
+  }
+
+  async createTest(testData: any) {
+    // Calculate scheduled_end based on scheduled_start + duration
+    const scheduledStart = new Date(testData.scheduled_start);
+    const scheduledEnd = new Date(scheduledStart.getTime() + (testData.duration_minutes * 60 * 1000));
+    
+    const testWithEnd = {
+      ...testData,
+      scheduled_end: scheduledEnd.toISOString()
+    };
+
+    const { data, error } = await this.supabase
+      .from('tests')
+      .insert([testWithEnd])
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to create test: ${error.message}`);
+    return data;
+  }
+}
+
+const testService = new SimpleTestService();
 
 // Helper function to parse request body
 const parseBody = (body: string | null) => {
@@ -67,19 +175,34 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
   }
 
   try {
+    console.log('Function called:', { path: event.path, method: event.httpMethod });
+    
     const path = event.path.replace('/.netlify/functions/tests', '');
     const method = event.httpMethod;
     const body = parseBody(event.body);
     const query = event.queryStringParameters || {};
 
+    console.log('Processed path:', path, 'Method:', method);
+
+    // Health check route
+    if (method === 'GET' && path === '/health') {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, message: 'Function is working' }),
+      };
+    }
+
     // Route: GET /api/tests - Get all tests
     if (method === 'GET' && path === '') {
+      console.log('Fetching tests with filters:', query);
       const { status, subject } = query;
       const filters: any = {};
       if (status) filters.status = status;
       if (subject) filters.subject = subject;
 
       const tests = await testService.getTests(filters);
+      console.log('Found tests:', tests.length);
       return {
         statusCode: 200,
         headers,

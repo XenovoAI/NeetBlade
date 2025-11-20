@@ -1,15 +1,113 @@
 import { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-import { testService } from '../../server/services/testService';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-// Lazy Supabase client for auth
+// Supabase client
 function getSupabaseClient() {
   const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
   
   return createClient(supabaseUrl, supabaseKey);
 }
+
+// Simple test service for Netlify Functions
+class SimpleTestService {
+  private supabase = getSupabaseClient();
+
+  async getTestAttempt(attemptId: string, userId?: string) {
+    let query = this.supabase
+      .from('test_attempts')
+      .select('*')
+      .eq('id', attemptId);
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query.single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to fetch test attempt: ${error.message}`);
+    }
+    return data;
+  }
+
+  async getTestAnswersByAttemptId(attemptId: string) {
+    const { data, error } = await this.supabase
+      .from('test_answers')
+      .select('*')
+      .eq('attempt_id', attemptId)
+      .order('answered_at', { ascending: true });
+
+    if (error) throw new Error(`Failed to fetch test answers: ${error.message}`);
+    return data || [];
+  }
+
+  async getQuestionsByTestId(testId: string) {
+    const { data, error } = await this.supabase
+      .from('questions')
+      .select('*')
+      .eq('test_id', testId)
+      .order('order_index', { ascending: true });
+
+    if (error) throw new Error(`Failed to fetch questions: ${error.message}`);
+    return data || [];
+  }
+
+  async saveTestAnswer(answerData: any) {
+    const { data, error } = await this.supabase
+      .from('test_answers')
+      .upsert([answerData])
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to save test answer: ${error.message}`);
+    return data;
+  }
+
+  async calculateTestScore(attemptId: string) {
+    const { data, error } = await this.supabase
+      .from('test_answers')
+      .select(`
+        is_correct,
+        questions!inner(points)
+      `)
+      .eq('attempt_id', attemptId);
+
+    if (error) throw new Error(`Failed to calculate test score: ${error.message}`);
+
+    const answers = data || [];
+    const score = answers.filter((answer: any) => answer.is_correct).reduce((sum: number, answer: any) =>
+      sum + (answer.questions as any).points, 0
+    );
+    const totalPoints = answers.reduce((sum: number, answer: any) =>
+      sum + (answer.questions as any).points, 0
+    );
+
+    return { score, totalPoints };
+  }
+
+  async completeTestAttempt(attemptId: string, score: number, totalPoints: number) {
+    const updates = {
+      status: 'completed',
+      ended_at: new Date().toISOString(),
+      score,
+      total_points: totalPoints
+    };
+
+    const { data, error } = await this.supabase
+      .from('test_attempts')
+      .update(updates)
+      .eq('id', attemptId)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to update test attempt: ${error.message}`);
+    return data;
+  }
+}
+
+const testService = new SimpleTestService();
 
 // Helper function to parse request body
 const parseBody = (body: string | null) => {
