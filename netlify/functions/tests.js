@@ -1,0 +1,367 @@
+// server/services/testService.ts
+import { createClient } from "@supabase/supabase-js";
+var TestService = class {
+  _supabase = null;
+  get supabase() {
+    if (!this._supabase) {
+      const supabaseUrl = process.env.SUPABASE_URL || "https://your-project.supabase.co";
+      const supabaseKey = process.env.SUPABASE_ANON_KEY || "your-anon-key";
+      console.log("TestService Supabase config:", {
+        url: supabaseUrl,
+        keyLength: supabaseKey?.length,
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasKey: !!process.env.SUPABASE_ANON_KEY
+      });
+      this._supabase = createClient(supabaseUrl, supabaseKey);
+    }
+    return this._supabase;
+  }
+  // Test CRUD operations
+  async createTest(testData) {
+    const scheduledStart = new Date(testData.scheduled_start);
+    const scheduledEnd = new Date(scheduledStart.getTime() + testData.duration_minutes * 60 * 1e3);
+    const testWithEnd = {
+      ...testData,
+      scheduled_end: scheduledEnd.toISOString()
+    };
+    const { data, error } = await this.supabase.from("tests").insert([testWithEnd]).select().single();
+    if (error) throw new Error(`Failed to create test: ${error.message}`);
+    return data;
+  }
+  async getTests(filters) {
+    let query = this.supabase.from("tests").select("*");
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
+    }
+    if (filters?.subject) {
+      query = query.eq("subject", filters.subject);
+    }
+    if (filters?.user_id) {
+      query = query.eq("created_by", filters.user_id);
+    }
+    const { data, error } = await query.order("scheduled_start", { ascending: true });
+    if (error) throw new Error(`Failed to fetch tests: ${error.message}`);
+    return data || [];
+  }
+  async getTestById(id) {
+    const { data, error } = await this.supabase.from("tests").select("*").eq("id", id).single();
+    if (error && error.code !== "PGRST116") {
+      throw new Error(`Failed to fetch test: ${error.message}`);
+    }
+    return data;
+  }
+  async updateTest(id, updates) {
+    if (updates.scheduled_start || updates.duration_minutes) {
+      const currentTest = await this.getTestById(id);
+      if (currentTest) {
+        const scheduledStart = new Date(updates.scheduled_start || currentTest.scheduled_start);
+        const durationMinutes = updates.duration_minutes || currentTest.duration_minutes;
+        const scheduledEnd = new Date(scheduledStart.getTime() + durationMinutes * 60 * 1e3);
+        updates.scheduled_end = scheduledEnd.toISOString();
+      }
+    }
+    const { data, error } = await this.supabase.from("tests").update(updates).eq("id", id).select().single();
+    if (error) throw new Error(`Failed to update test: ${error.message}`);
+    return data;
+  }
+  async deleteTest(id) {
+    const { error } = await this.supabase.from("tests").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete test: ${error.message}`);
+  }
+  // Question CRUD operations
+  async createQuestions(questionsData) {
+    const { data, error } = await this.supabase.from("questions").insert(questionsData).select();
+    if (error) throw new Error(`Failed to create questions: ${error.message}`);
+    return data || [];
+  }
+  async getQuestionsByTestId(testId) {
+    const { data, error } = await this.supabase.from("questions").select("*").eq("test_id", testId).order("order_index", { ascending: true });
+    if (error) throw new Error(`Failed to fetch questions: ${error.message}`);
+    return data || [];
+  }
+  async updateQuestion(id, updates) {
+    const { data, error } = await this.supabase.from("questions").update(updates).eq("id", id).select().single();
+    if (error) throw new Error(`Failed to update question: ${error.message}`);
+    return data;
+  }
+  async deleteQuestion(id) {
+    const { error } = await this.supabase.from("questions").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete question: ${error.message}`);
+  }
+  // Test Attempt operations
+  async startTestAttempt(testId, userId) {
+    const { canStart, existingAttempt, reason } = await this.canUserStartTest(testId, userId);
+    if (!canStart) {
+      throw new Error(reason || "Cannot start test attempt");
+    }
+    if (existingAttempt) {
+      return existingAttempt;
+    }
+    const attemptData = {
+      test_id: testId,
+      user_id: userId,
+      status: "in_progress"
+    };
+    const { data, error } = await this.supabase.from("test_attempts").insert([attemptData]).select().single();
+    if (error) throw new Error(`Failed to start test attempt: ${error.message}`);
+    return data;
+  }
+  async getTestAttempt(attemptId, userId) {
+    let query = this.supabase.from("test_attempts").select("*").eq("id", attemptId);
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+    const { data, error } = await query.single();
+    if (error && error.code !== "PGRST116") {
+      throw new Error(`Failed to fetch test attempt: ${error.message}`);
+    }
+    return data;
+  }
+  async getTestAttemptsByTestId(testId) {
+    const { data, error } = await this.supabase.from("test_attempts").select("*").eq("test_id", testId).order("started_at", { ascending: false });
+    if (error) throw new Error(`Failed to fetch test attempts: ${error.message}`);
+    return data || [];
+  }
+  async getTestAttemptsByUserId(userId) {
+    const { data, error } = await this.supabase.from("test_attempts").select("*").eq("user_id", userId).order("started_at", { ascending: false });
+    if (error) throw new Error(`Failed to fetch user test attempts: ${error.message}`);
+    return data || [];
+  }
+  async updateTestAttempt(id, updates) {
+    const { data, error } = await this.supabase.from("test_attempts").update(updates).eq("id", id).select().single();
+    if (error) throw new Error(`Failed to update test attempt: ${error.message}`);
+    return data;
+  }
+  async completeTestAttempt(attemptId, score, totalPoints) {
+    const updates = {
+      status: "completed",
+      ended_at: (/* @__PURE__ */ new Date()).toISOString(),
+      score,
+      total_points: totalPoints
+    };
+    return this.updateTestAttempt(attemptId, updates);
+  }
+  async timeoutTestAttempt(attemptId, score, totalPoints) {
+    const updates = {
+      status: "timed_out",
+      ended_at: (/* @__PURE__ */ new Date()).toISOString(),
+      score,
+      total_points: totalPoints
+    };
+    return this.updateTestAttempt(attemptId, updates);
+  }
+  // Test Answer operations
+  async saveTestAnswer(answerData) {
+    const { data, error } = await this.supabase.from("test_answers").upsert([answerData]).select().single();
+    if (error) throw new Error(`Failed to save test answer: ${error.message}`);
+    return data;
+  }
+  async getTestAnswersByAttemptId(attemptId) {
+    const { data, error } = await this.supabase.from("test_answers").select("*").eq("attempt_id", attemptId).order("answered_at", { ascending: true });
+    if (error) throw new Error(`Failed to fetch test answers: ${error.message}`);
+    return data || [];
+  }
+  async calculateTestScore(attemptId) {
+    const { data, error } = await this.supabase.from("test_answers").select(`
+        is_correct,
+        questions!inner(points)
+      `).eq("attempt_id", attemptId);
+    if (error) throw new Error(`Failed to calculate test score: ${error.message}`);
+    const answers = data || [];
+    const score = answers.filter((answer) => answer.is_correct).reduce(
+      (sum, answer) => sum + answer.questions.points,
+      0
+    );
+    const totalPoints = answers.reduce(
+      (sum, answer) => sum + answer.questions.points,
+      0
+    );
+    return { score, totalPoints };
+  }
+  // Test validation
+  async canUserStartTest(testId, userId) {
+    const test = await this.getTestById(testId);
+    if (!test) {
+      return { canStart: false, reason: "Test not found" };
+    }
+    if (test.status !== "active") {
+      return { canStart: false, reason: `Test is ${test.status}` };
+    }
+    const existingAttempts = await this.supabase.from("test_attempts").select("*").eq("test_id", testId).eq("user_id", userId).order("created_at", { ascending: false });
+    if (existingAttempts.data && existingAttempts.data.length > 0) {
+      const attempt = existingAttempts.data[0];
+      if (attempt.status === "in_progress") {
+        return { canStart: true, existingAttempt: attempt };
+      } else if (attempt.status === "completed" || attempt.status === "timed_out") {
+        return { canStart: false, reason: "You have already completed this test" };
+      }
+    }
+    return { canStart: true };
+  }
+};
+var testService = new TestService();
+
+// netlify/functions/tests.ts
+import { createClient as createClient2 } from "@supabase/supabase-js";
+import { z } from "zod";
+function getSupabaseClient() {
+  const supabaseUrl = process.env.SUPABASE_URL || "https://your-project.supabase.co";
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || "your-anon-key";
+  return createClient2(supabaseUrl, supabaseKey);
+}
+var parseBody = (body) => {
+  if (!body) return {};
+  try {
+    return JSON.parse(body);
+  } catch {
+    return {};
+  }
+};
+async function getUserFromAuth(authHeader) {
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new Error("Missing or invalid authorization header");
+  }
+  const token = authHeader.substring(7);
+  const { data: { user }, error } = await getSupabaseClient().auth.getUser(token);
+  if (error || !user) {
+    throw new Error("Invalid token");
+  }
+  return user;
+}
+async function isUserAdmin(userId) {
+  const { data: userData } = await getSupabaseClient().from("users").select("is_admin").eq("id", userId).single();
+  return userData?.is_admin || false;
+}
+var handler = async (event, context) => {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Content-Type": "application/json"
+  };
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers,
+      body: ""
+    };
+  }
+  try {
+    const path = event.path.replace("/.netlify/functions/tests", "");
+    const method = event.httpMethod;
+    const body = parseBody(event.body);
+    const query = event.queryStringParameters || {};
+    if (method === "GET" && path === "") {
+      const { status, subject } = query;
+      const filters = {};
+      if (status) filters.status = status;
+      if (subject) filters.subject = subject;
+      const tests = await testService.getTests(filters);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, data: tests })
+      };
+    }
+    if (method === "GET" && path.match(/^\/[^\/]+$/)) {
+      const id = path.substring(1);
+      const test = await testService.getTestById(id);
+      if (!test) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: "Test not found" })
+        };
+      }
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, data: test })
+      };
+    }
+    if (method === "POST" && path === "") {
+      const user = await getUserFromAuth(event.headers.authorization);
+      const isAdmin = await isUserAdmin(user.id);
+      if (!isAdmin) {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ error: "Admin access required" })
+        };
+      }
+      const createTestSchema = z.object({
+        title: z.string().min(1, "Title is required"),
+        description: z.string().optional(),
+        subject: z.string().min(1, "Subject is required"),
+        duration_minutes: z.number().min(1, "Duration must be at least 1 minute"),
+        scheduled_start: z.string().datetime("Invalid start time"),
+        status: z.enum(["draft", "scheduled"]).default("draft")
+      });
+      const validatedData = createTestSchema.parse(body);
+      const testData = { ...validatedData, created_by: user.id };
+      const test = await testService.createTest(testData);
+      return {
+        statusCode: 201,
+        headers,
+        body: JSON.stringify({ success: true, data: test })
+      };
+    }
+    if (method === "GET" && path.match(/^\/[^\/]+\/questions$/)) {
+      const id = path.split("/")[1];
+      const questions = await testService.getQuestionsByTestId(id);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, data: questions })
+      };
+    }
+    if (method === "GET" && path === "/user/attempts") {
+      const user = await getUserFromAuth(event.headers.authorization);
+      const attempts = await testService.getTestAttemptsByUserId(user.id);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, data: attempts })
+      };
+    }
+    if (method === "POST" && path.match(/^\/[^\/]+\/start$/)) {
+      const user = await getUserFromAuth(event.headers.authorization);
+      const id = path.split("/")[1];
+      const attempt = await testService.startTestAttempt(id, user.id);
+      return {
+        statusCode: 201,
+        headers,
+        body: JSON.stringify({ success: true, data: attempt })
+      };
+    }
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ error: "Route not found" })
+    };
+  } catch (error) {
+    console.error("Function error:", error);
+    if (error instanceof z.ZodError) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "Validation failed", details: error.errors })
+      };
+    }
+    if (error instanceof Error && error.message.includes("authorization")) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: error.message })
+      };
+    }
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: "Internal server error" })
+    };
+  }
+};
+export {
+  handler
+};
