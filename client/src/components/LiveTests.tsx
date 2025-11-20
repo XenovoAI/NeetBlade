@@ -133,7 +133,16 @@ export default function LiveTests() {
       setTests(data.data || []);
     } catch (error) {
       console.error('Error fetching tests:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load tests');
+      
+      // Try mock API as fallback
+      try {
+        const { mockApi } = await import('@/lib/mockApi');
+        const mockData = await mockApi.getTests();
+        setTests(mockData.data || []);
+        console.log('Using mock data as fallback');
+      } catch (mockError) {
+        setError(error instanceof Error ? error.message : 'Failed to load tests');
+      }
     } finally {
       setLoading(false);
     }
