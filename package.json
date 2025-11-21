@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@netlify/functions": "^2.8.1",
+    "@vercel/node": "^3.0.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
