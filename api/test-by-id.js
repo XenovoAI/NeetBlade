@@ -1,5 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 // Supabase client
 function getSupabaseClient() {
@@ -11,9 +10,11 @@ function getSupabaseClient() {
 
 // Simple test service for Vercel
 class SimpleTestService {
-  private supabase = getSupabaseClient();
+  constructor() {
+    this.supabase = getSupabaseClient();
+  }
 
-  async getTestById(id: string) {
+  async getTestById(id) {
     const { data, error } = await this.supabase
       .from('tests')
       .select('*')
@@ -26,7 +27,7 @@ class SimpleTestService {
     return data;
   }
 
-  async getQuestionsByTestId(testId: string) {
+  async getQuestionsByTestId(testId) {
     const { data, error } = await this.supabase
       .from('questions')
       .select('*')
@@ -40,7 +41,7 @@ class SimpleTestService {
 
 const testService = new SimpleTestService();
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -53,21 +54,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { method, query } = req;
-    const { id } = query;
+    const { id, action } = query;
 
-    if (!id || typeof id !== 'string') {
+    if (!id) {
       return res.status(400).json({ error: 'Test ID is required' });
     }
 
-    // GET /api/tests/[id] - Get test by ID
     if (method === 'GET') {
-      const test = await testService.getTestById(id);
-      
-      if (!test) {
-        return res.status(404).json({ error: 'Test not found' });
-      }
+      if (action === 'questions') {
+        // GET /api/test-by-id?id=123&action=questions
+        const questions = await testService.getQuestionsByTestId(id);
+        return res.status(200).json({ success: true, data: questions });
+      } else {
+        // GET /api/test-by-id?id=123
+        const test = await testService.getTestById(id);
+        
+        if (!test) {
+          return res.status(404).json({ error: 'Test not found' });
+        }
 
-      return res.status(200).json({ success: true, data: test });
+        return res.status(200).json({ success: true, data: test });
+      }
     }
 
     // Method not allowed
@@ -77,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('API Error:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error.message || 'Unknown error'
     });
   }
-}
+};
