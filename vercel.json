@@ -2,10 +2,14 @@
   "version": 2,
   "builds": [
     {
+      "src": "server/index.ts",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
-      "use": "@vercel/node",
+      "use": "@vercel/static-build",
       "config": {
-        "includeFiles": ["dist/**"]
+        "distDir": "dist"
       }
     }
   ],
@@ -19,12 +23,7 @@
       "dest": "/dist/$1"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "server/index.ts": {
-      "includeFiles": "dist/**"
-    }
-  }
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install"
 }
