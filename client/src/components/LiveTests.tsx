@@ -125,22 +125,35 @@ export default function LiveTests() {
 
   const fetchTests = async () => {
     try {
+      console.log('Fetching tests from /api/tests');
       const response = await fetch('/api/tests');
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch tests');
+        console.error('API response not ok:', response.status, response.statusText);
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
       }
+      
       const data = await response.json();
-      setTests(data.data || []);
+      console.log('API response data:', data);
+      
+      if (data.success && data.data) {
+        setTests(data.data);
+        console.log('Successfully loaded tests from API:', data.data.length);
+      } else {
+        throw new Error('Invalid API response format');
+      }
     } catch (error) {
-      console.error('Error fetching tests:', error);
+      console.error('Error fetching tests from API:', error);
       
       // Try mock API as fallback
       try {
+        console.log('Falling back to mock data');
         const { mockApi } = await import('@/lib/mockApi');
         const mockData = await mockApi.getTests();
         setTests(mockData.data || []);
-        console.log('Using mock data as fallback');
+        console.log('Using mock data as fallback:', mockData.data?.length);
       } catch (mockError) {
+        console.error('Mock data also failed:', mockError);
         setError(error instanceof Error ? error.message : 'Failed to load tests');
       }
     } finally {
